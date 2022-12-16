@@ -1,7 +1,7 @@
 """
-This is Features.py.
+This is features.py.
 
-Features.py contains class Features.
+features.py contains class Features.
 """
 import pandas as pd
 
@@ -35,6 +35,7 @@ import pandas as pd
 # XR = 0x400000,
 # ModelTracking = 0x800000
 
+
 class Features:
     """Data frame of features.
 
@@ -53,13 +54,13 @@ class Features:
         """Declare/Initialize features."""
         self.features = pd.DataFrame(
             {
-                "keyword": ["Viewing", "DMU", "Collaboration", "XR",
-                            "ModelTracking"],
+                "keyword": ["Viewing", "DMU", "Collaboration", "XR", "ModelTracking"],
                 "fullname": ["", "", "", "", ""],
                 "bitmask": [0x80000, 0x100000, 0x200000, 0x400000, 0x800000],
                 "package": [True, True, True, True, True],
-                "token_consumption": [10, 15, 20, 25, 35]
-            })
+                "token_consumption": [10, 15, 20, 25, 35],
+            }
+        )
 
     def get_data_features(self):
         """Return features.

@@ -1,27 +1,32 @@
 # BI Dashboard
 
-<!---
 ## Description
 TODO: Write Description
 
-## Visuals
-TODO: Insert Visual
--->
+### Visuals
+TODO: Insert Visuals / Screenshots from website
 
 ## Installation + Usage
-Create and activate Conda environment:
-1. `conda env create --file environment.yaml`
-2. `conda activate bi-dashboard`
+This project uses standard python venv and was tested with **python 3.10.6**, every step should be performed in the project root directory:
+1. Create virtual environment: `python3 -m venv .venv`
+2. Activate the virtual environment: `source .venv/bin/activate`
+3. Install all packages: `pip install -r requirements.txt`
+4. Add project route to the python sys path: `export PYTHONPATH='.'`
+5. Deactivate the virtual environment: `deactivate`
+
 
 Run the app:
-
-3. `python3 app.py`
+1. Activate venv: `source .venv/bin/activate`
+2. Run the app: `python3 dash/app.py`
 
 
 ## Authors
 Bachelorpraktikum 2022 TU Darmstadt Gruppe 21
 
-<!---
 ## License
-TODO: Insert License
--->
+This project has a MIT License: [LICENSE](LICENSE)
+
+## Committing code
+Before committing code check the code quality: `make quality`
+
+Files can be formatted automatically: `make format`
