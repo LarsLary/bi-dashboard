@@ -1,7 +1,7 @@
 """
-This is Data.py.
+This is data.py.
 
-Data.py contains classes DataPings and DataSessions.
+data.py contains classes DataPings and DataSessions.
 """
 
 import datetime as dt
@@ -68,7 +68,9 @@ class DataPings:
 
         Remove entries from data with bitmasks, that don't contain a metered feature.
         """
-        metered_bitmasks = self.features["bitmask"].agg(lambda x: np.bitwise_or.reduce(x.values))
+        metered_bitmasks = self.features["bitmask"].agg(
+            lambda x: np.bitwise_or.reduce(x.values)
+        )
         self.data = self.data[self.data["feature_mask"] & metered_bitmasks > 0]
 
     def get_metered_days(self):
@@ -117,8 +119,10 @@ class DataPings:
                 self.get_metered_days()
             first_day = self.metered_days[0]
             last_day = self.metered_days[-1]
-            self.day_sequence_of_timespan = [first_day + dt.timedelta(days=x)
-                                             for x in range((last_day - first_day).days + 1)]
+            self.day_sequence_of_timespan = [
+                first_day + dt.timedelta(days=x)
+                for x in range((last_day - first_day).days + 1)
+            ]
         return self.day_sequence_of_timespan
 
 
@@ -158,23 +162,29 @@ class DataSessions:
         return daily feature usage cost
     """
 
-    def __init__(self, data_pings: DataPings, block_length: int):
+    def __init__(
+        self,
+        data: pd.DataFrame,
+        data_pings: DataPings,
+        features: pd.DataFrame,
+        block_length: int,
+    ):
         """Declare/Initialize variable and extract sessions.
 
         Parameters
         ----------
+        data : pd.Dataframe
         data_pings : DataPings
+        features : pd.Dataframe
         block_length : int
         """
         self.data_pings = data_pings
-        self.features = data_pings.features
+        self.features = features
         self.block_length = block_length
-        self.data = None
+        self.data = data
         self.data_with_feature_use = None
         self.data_with_token_cost = None
         self.data_with_daily_token_cost = None
-
-        self.extract_session_blocks()
 
     def extract_session_blocks(self):
         """Create session blocks.
@@ -227,17 +237,25 @@ class DataSessions:
             # or same cluster id and new app_instance_id
             # or timestamp is not in the block
             # ==> close open block and open new one
-            elif c_id != cur_c_id \
-                    or (c_id == cur_c_id and a_id != cur_a_id) \
-                    or timestamp >= cur_timestamp + dt.timedelta(seconds=self.block_length):
-                block_end_timestamp = (cur_timestamp + dt.timedelta(seconds=self.block_length)).strftime(time_format)
+            elif (
+                c_id != cur_c_id
+                or (c_id == cur_c_id and a_id != cur_a_id)
+                or timestamp >= cur_timestamp + dt.timedelta(seconds=self.block_length)
+            ):
+                block_end_timestamp = (
+                    cur_timestamp + dt.timedelta(seconds=self.block_length)
+                ).strftime(time_format)
                 # TODO: Optimize? Better way than append?
-                session_data.append([cur_c_id,
-                                     cur_a_id,
-                                     cur_bitmask,
-                                     cur_timestamp.strftime(time_format),
-                                     block_end_timestamp,
-                                     cur_last_ping.strftime(time_format)])
+                session_data.append(
+                    [
+                        cur_c_id,
+                        cur_a_id,
+                        cur_bitmask,
+                        cur_timestamp.strftime(time_format),
+                        block_end_timestamp,
+                        cur_last_ping.strftime(time_format),
+                    ]
+                )
                 cur_timestamp = timestamp
                 cur_bitmask = bitmask
                 cur_c_id = c_id
@@ -249,19 +267,32 @@ class DataSessions:
                 cur_last_ping = timestamp
         # close last block
         if cur_timestamp:
-            block_end_timestamp = (cur_timestamp + dt.timedelta(
-                seconds=self.block_length)).strftime(time_format)
+            block_end_timestamp = (
+                cur_timestamp + dt.timedelta(seconds=self.block_length)
+            ).strftime(time_format)
             # TODO: Optimize? Better way than append?
-            session_data.append([cur_c_id,
-                                 cur_a_id,
-                                 cur_bitmask,
-                                 cur_timestamp.strftime(time_format),
-                                 block_end_timestamp,
-                                 cur_last_ping.strftime(time_format)])
+            session_data.append(
+                [
+                    cur_c_id,
+                    cur_a_id,
+                    cur_bitmask,
+                    cur_timestamp.strftime(time_format),
+                    block_end_timestamp,
+                    cur_last_ping.strftime(time_format),
+                ]
+            )
 
-        self.data = pd.DataFrame(session_data,
-                                 columns=["cluster_id", "app_instance_id", "feature_mask", "block_start", "block_end",
-                                          "last_ping"])
+        self.data = pd.DataFrame(
+            session_data,
+            columns=[
+                "cluster_id",
+                "app_instance_id",
+                "feature_mask",
+                "block_start",
+                "block_end",
+                "last_ping",
+            ],
+        )
 
     def get_data_with_feature_use(self):
         """
@@ -280,9 +311,11 @@ class DataSessions:
         data : pd.DataFrame
         feature_df : pd.Series
         """
-        if not self.data_with_feature_use:
+        if self.data_with_feature_use is None:
             data = self.data.copy()
             feature_df = self.get_feature_data_from_bitmasks(data["feature_mask"])
+            feature_df.index = feature_df.index.astype(int)
+            data.index = data.index.astype(int)
             self.data_with_feature_use = pd.concat([data, feature_df], axis="columns")
         return self.data_with_feature_use
 
@@ -306,7 +339,9 @@ class DataSessions:
         feature_df : pd.Series
         """
         # get data if feature is used as list of list (:= feature_x of row_x)
-        feature_data = [[int(f & b > 0) for f in self.features["bitmask"]] for b in bitmasks]
+        feature_data = [
+            [int(f & b > 0) for f in self.features["bitmask"]] for b in bitmasks
+        ]
 
         # get column names as list
         col_names = [name for name in self.features["keyword"]]
@@ -331,8 +366,8 @@ class DataSessions:
         features_in_df : list of String
         feat_name : String
         """
-        if not self.data_with_token_cost:
-            if not self.data_with_feature_use:
+        if self.data_with_token_cost is None:
+            if self.data_with_feature_use is None:
                 self.get_data_with_feature_use()
             data = self.data_with_feature_use.copy()
             # map feature usage to feature token cost
@@ -341,7 +376,9 @@ class DataSessions:
             for index, row in self.features.iterrows():
                 feat_name = row["keyword"]
                 if feat_name in data.columns:
-                    data[feat_name] = data[feat_name].apply(lambda x: x * row["token_consumption"])
+                    data[feat_name] = data[feat_name].apply(
+                        lambda x: x * row["token_consumption"]
+                    )
                     features_in_df.append(feat_name)
 
             # calculate total token consumption of session block and extend
@@ -369,16 +406,36 @@ class DataSessions:
         first_date : String
         last_date : String
         """
-        if not self.data_with_daily_token_cost:
-            if not self.data_with_token_cost:
+        if self.data_with_daily_token_cost is None:
+            if self.data_with_token_cost is None:
                 self.get_data_with_token_cost()
             data = self.data_with_token_cost.copy()
-            data = data.drop(["cluster_id", "app_instance_id", "feature_mask", "block_end", "last_ping"],
-                             axis="columns")
+            data = data.drop(
+                [
+                    "cluster_id",
+                    "app_instance_id",
+                    "feature_mask",
+                    "block_end",
+                    "last_ping",
+                ],
+                axis="columns",
+            )
             data["block_start"] = data["block_start"].str[:10]
-            data = data.groupby("block_start").sum()
+
+            data = (
+                data.groupby(["block_start"])
+                .agg(
+                    Viewing=("Viewing", "sum"),
+                    DMU=("DMU", "sum"),
+                    Collaboration=("Collaboration", "sum"),
+                    XR=("XR", "sum"),
+                    ModelTracking=("ModelTracking", "sum"),
+                    total=("total", "sum"),
+                )
+                .reset_index()
+            )
+
             # make sure that indices exist correctly
-            data.reset_index(inplace=True)
             data.rename(columns={"block_start": "date"}, inplace=True)
 
             # add missing dates
@@ -397,3 +454,37 @@ class DataSessions:
             self.data_with_daily_token_cost = data
 
         return self.data_with_daily_token_cost
+
+    def crop_data(self, first_date: str, last_date: str):
+        """
+        Sets the data to the wanted interval
+
+        Parameters
+        ---------
+        first_date: str
+            first date of the new interval
+        last_date: str
+            last date of the new interval
+        """
+        self.data = self.data[
+            (self.data["block_start"] >= str(first_date))
+            & (self.data["block_end"] <= str(last_date))
+        ]
+
+    def get_total_token_amount(self):
+        """
+        Computes the total token usage
+
+        Returns
+        -------
+        pd.Dataframe:
+                total token usage for each product and total token usage
+        """
+        if self.data_with_daily_token_cost is None:
+            self.get_data_with_daily_token_cost()
+        cols = self.features.keyword
+        cols = pd.concat([cols, pd.Series(["total"])])
+        data = self.data_with_daily_token_cost.copy()
+        data = data[cols].sum()
+
+        return data
