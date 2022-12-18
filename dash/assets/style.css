@@ -15,7 +15,7 @@ header {
     background-color: #1e1e1e;
 }
 
-body{
+body {
     background-color: #1e1e1e;
 }
 
@@ -44,22 +44,25 @@ body{
     box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
 }
 
-.button:hover{
+.button:hover {
     background-color: rgba(78, 178, 248, 0.1);
     box-shadow: rgba(0, 0, 0, 0.2) 0px 5px 10px;
 }
 
-.time{
+.time {
     color: #43CBFF;
     padding-left: 5px;
     border-style: solid;
-    border-width:  2px;
+    border-width: 2px;
     border-radius: 50px;
     border-color: #171717;
 
 }
 
-.box1, .box2, .box3, .box4{
+.box1,
+.box2,
+.box3,
+.box4 {
     margin: 10px;
     padding: 10px;
     height: 100px;
@@ -68,29 +71,29 @@ body{
     box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
 }
 
-.box1{
+.box1 {
     background: linear-gradient(110deg, #FEB692, #EA5455)
 }
 
-.box2{
+.box2 {
     background: linear-gradient(110deg, #CE9FFC, #7367F0)
 }
 
-.box3{
+.box3 {
     background: linear-gradient(110deg, #F97794, #623AA2)
 }
 
-.box4{
+.box4 {
     background: linear-gradient(110deg, #43CBFF, #9708CC)
 }
 
-.info-text{
+.info-text {
     font-size: 30px;
     font-weight: bold;
     text-align: center;
 }
 
-.info{
+.info {
     color: #edf0f1;
     font-weight: bold;
     width: 70%;
@@ -98,17 +101,17 @@ body{
     justify-content: space-evenly;
 }
 
-.graph{
+.graph {
     color: #edf0f1;
     background-color: #171717;
     height: 450px;
     width: 700px;
-    border-radius:15px;
+    border-radius: 15px;
     box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
 
 }
 
-.graph_data{
+.graph_data {
     padding: 10px;
     color: #edf0f1;
     width: 700px;
@@ -118,7 +121,7 @@ body{
     box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
 }
 
-.dropdown{
+.dropdown {
     text-align: center;
     padding: 10px;
     color: #23252A;
@@ -126,13 +129,15 @@ body{
 
 }
 
-.content{
+.content {
     display: grid;
     place-items: center;
 }
 
 
-.DateRangePickerInput__withBorder, .DateInput, .DateInput_input {
+.DateRangePickerInput__withBorder,
+.DateInput,
+.DateInput_input {
     border-radius: 50px;
     color: #43CBFF;
     background-color: #171717;
@@ -140,29 +145,43 @@ body{
 }
 
 
-.DayPicker__withBorder,.DateRangePicker_picker, .CalendarMonth, .CalendarMonth_caption, .CalendarDay, .DayPickerNavigation_rightButton__horizontalDefault, .DayPickerNavigation_leftButton__horizontalDefault, .CalendarMonthGrid, .DayPickerKeyboardShortcuts_panel{
+.DayPicker__withBorder,
+.DateRangePicker_picker,
+.CalendarMonth,
+.CalendarMonth_caption,
+.CalendarDay,
+.DayPickerNavigation_rightButton__horizontalDefault,
+.DayPickerNavigation_leftButton__horizontalDefault,
+.CalendarMonthGrid,
+.DayPickerKeyboardShortcuts_panel {
     color: #43CBFF;
     background-color: #171717;
-    border-color: rgba(255,255,255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
-.DayPicker_weekHeader{
+.DayPicker_weekHeader {
     color: #edf0f1;
 }
 
-.CalendarDay:hover, .DayPickerNavigation_rightButton__horizontalDefault:hover, .DayPickerNavigation_leftButton__horizontalDefault:hover{
-    background-color: rgba(255,255,255, 0.1);
-    border-color: rgba(255,255,255, 0.1);
+.CalendarDay:hover,
+.DayPickerNavigation_rightButton__horizontalDefault:hover,
+.DayPickerNavigation_leftButton__horizontalDefault:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
-.Select-control, .Select-value, .Select-input, .has-value.Select--single > .Select-control .Select-value .Select-value-label, .is-open > .Select-control{
+.Select-control,
+.Select-value,
+.Select-input,
+.has-value.Select--single>.Select-control .Select-value .Select-value-label,
+.is-open>.Select-control {
     color: #43CBFF;
     background-color: #171717;
     border-radius: 10px;
     border-color: #171717;
 }
 
-.Select-menu-outer{
+.Select-menu-outer {
     width: 680px;
     color: #43CBFF;
     background-color: #171717;
@@ -170,17 +189,34 @@ body{
     border-color: #1e1e1e;
 }
 
-.Select-control{
+.Select-control {
     box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
 }
 
-.Select-control:hover{
+.Select-control:hover {
     box-shadow: rgba(0, 0, 0, 0.2) 0px 5px 10px;
 }
 
-.table{
+.table {
     color: #43CBFF;
     width: auto;
     height: auto;
 }
 
+.progress-div {
+    visibility: hidden;
+    padding-top: 5%;
+    padding-bottom: 5%;
+    padding-left: 10%;
+    padding-right: 10%;
+    background: linear-gradient(110deg, #7367F0, #3D396A);
+    width: 80%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid #ffffff;
+    border-radius: 15px;
+    color: white;
+}

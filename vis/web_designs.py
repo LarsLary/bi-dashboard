@@ -46,13 +46,14 @@ def header() -> html.Header:
                         src="assets/threedy_logo.svg",
                         height="43 px",
                         width="auto",
-                        style={"vertical-align": "top"},
+                        style={"verticalAlign": "top"},
                     )
                 ],
                 className="col-2 logo",
             ),
         ],
         className="header",
+        id="header",
     )
 
     return header
@@ -153,9 +154,33 @@ def body():
                     ),
                 ],
                 className="content",
+                id="content",
             ),
             dcc.Store(id="data-store", data=[]),
             dcc.Store(id="current-data", data=[]),
             dcc.Store(id="pings", data=[]),
+            html.Div(
+                [
+                    html.H1(
+                        "~",
+                        id="progress_bar_header",
+                        className="center",
+                        style={"marginBottom": "3%"},
+                    ),
+                    html.P(
+                        "~",
+                        id="progress_message",
+                        className="info-text",
+                    ),
+                    dbc.Progress(
+                        id="progress_bar",
+                        striped=True,
+                        color="#2817e8",
+                        animated=True,
+                    ),
+                ],
+                className="progress-div",
+                id="progress_div",
+            ),
         ]
     )
