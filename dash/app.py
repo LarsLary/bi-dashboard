@@ -6,13 +6,16 @@ import webbrowser
 from datetime import date
 from threading import Thread
 from time import sleep
+from typing import Callable
 
 import dash_bootstrap_components as dbc
+import diskcache
 import pandas as pd
 
 from computation.data import DataPings, DataSessions
 from computation.features import Features
 from dash import Dash, Input, Output, State, ctx, dash, dcc
+from dash.long_callback import DiskcacheLongCallbackManager
 from vis.additional_data_vis import get_total_amount_table
 from vis.graph_vis import empty_fig, get_token_graph
 from vis.web_designs import body
@@ -20,7 +23,15 @@ from vis.web_designs import body
 
 GRAPH_LINE_COLOR = "#edf0f1"
 
-app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+# Diskcache - needed for long_callbacks
+cache = diskcache.Cache("./cache")
+long_callback_manager = DiskcacheLongCallbackManager(cache)
+
+# Dash
+app = Dash(
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    long_callback_manager=long_callback_manager,
+)
 app.title = "Token Dashboard Threedy"
 app._favicon = "threedy_favicon.png"
 app.layout = dbc.Container(body(), fluid=True)
@@ -278,38 +289,81 @@ def update_output_div(
     )
 
 
-@app.callback(
-    Output(component_id="lines", component_property="children"),
-    Output(component_id="reportName", component_property="children"),
-    Output(component_id="data-store", component_property="data"),
-    Output(component_id="pings", component_property="data"),
-    Input(component_id="upload", component_property="contents"),
-    State("upload", "filename"),
+@app.long_callback(
+    output=[
+        Output(component_id="lines", component_property="children"),
+        Output(component_id="reportName", component_property="children"),
+        Output(component_id="data-store", component_property="data"),
+        Output(component_id="pings", component_property="data"),
+    ],
+    inputs=[
+        Input(component_id="upload", component_property="contents"),
+        State("upload", "filename"),
+    ],
+    running=[
+        (Output("content", "style"), {"filter": "grayscale(100%)"}, {}),
+        (Output("header", "style"), {"filter": "grayscale(100%)"}, {}),
+        (
+            Output("progress_div", "style"),
+            {"visibility": "visible"},
+            {"visibility": "hidden"},
+        ),
+    ],
+    progress=[
+        Output("progress_bar", "value"),
+        Output("progress_bar", "label"),
+        Output("progress_bar_header", "children"),
+        Output("progress_message", "children"),
+    ],
     prevent_inital_call=True,
 )
-def load_data(data, name: str):
+def load_data(set_progress: Callable, data: str, name: str):
     """
     Parameters
     ----------
-    data : bytestream of data which represents the uploaded csv-file
+    set_progress : Function to update the website while this callback function is running
+    data : Bytestream of data which represents the uploaded csv-file
     name : String which represents the filename of the loaded csv-file
 
     Returns
     -------
     int which represents the number of lines in the csv-file
     String which represents the filename of the loaded csv-file
-    dict which represents the dataframe extracted out of the csv-file
+    dict containing the extracted data sessions data out of the csv-file
+    dict containing the extracted data pings data out of the csv-file
     """
 
     if data is not None:
+        header_text = "Upload Report"
+        set_progress((0, "0/5", header_text, "Converting Data"))
+        # without "sleep()" the user cannot see the first progress on the website
+        sleep(1)
+
+        # 1. Convert Data
         filename = name.split(".")[0]
         datagram = convert_report_to_df(data)
 
+        set_progress((20, "1/5", header_text, "Getting Number of Lines and Features"))
+        sleep(1)
+
+        # 2. Get Number of Lines and Features
         lines = str(len(datagram.index))
         features = Features().get_data_features()
+        set_progress((40, "2/5", header_text, "Extracting DataPings"))
+        sleep(1)
+
+        # 3. Extract DataPings
         data_pings = DataPings(datagram, features)
+        set_progress((60, "3/5", header_text, "Extracting DataSessions"))
+
+        # 4. Extract DataSessions
         data_session = DataSessions(pd.DataFrame([]), data_pings, features, 5)
+        set_progress((80, "4/5", header_text, "Extracting Session Blocks"))
+
+        # 5. Extract Session Blocks
         data_session.extract_session_blocks()
+        set_progress((100, "5/5", header_text, "Loaded Data Successfully"))
+
         return lines, filename, data_session.data.to_dict(), data_pings.data.to_dict()
     return "", "", None, None
 

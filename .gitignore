@@ -353,3 +353,7 @@ rsconnect/
 
 # For vscode:
 bi-dashboard.code-workspace
+data/feature_usage_mid.csv
+data/feature_usage_big.csv
+data/feature_usage.csv
+data/license_usage.csv
