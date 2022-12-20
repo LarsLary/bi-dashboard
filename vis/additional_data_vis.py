@@ -10,3 +10,17 @@ def get_total_amount_table(session: DataSessions):
     return dbc.Table.from_dataframe(
         pd.DataFrame({"Package": data.index, "Tokens": data.values}), id="table"
     )
+
+
+def get_cas_statistics(session: DataSessions):
+    """
+    Gets the data of the concurrent actives session
+
+    Returns
+    -------
+     dbc.Table:
+        Table with Maximum, Mean and Mean for weekdays for the concurrent active sessions
+    """
+    data = session.get_cas_statistics()
+
+    return dbc.Table.from_dataframe(data, className="table_without_head")

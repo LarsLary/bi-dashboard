@@ -177,6 +177,7 @@ class DataSessions:
         data_pings : DataPings
         features : pd.Dataframe
         block_length : int
+            session period in seconds
         """
         self.data_pings = data_pings
         self.features = features
@@ -185,6 +186,7 @@ class DataSessions:
         self.data_with_feature_use = None
         self.data_with_token_cost = None
         self.data_with_daily_token_cost = None
+        self.data_cas = None
 
     def extract_session_blocks(self):
         """Create session blocks.
@@ -455,9 +457,48 @@ class DataSessions:
 
         return self.data_with_daily_token_cost
 
-    def crop_data(self, first_date: str, last_date: str):
+    def get_cas(self):
         """
-        Sets the data to the wanted interval
+        Get number of concurrent active sessions by date.
+
+        Returns
+        -------
+        data_cas : pd.DataFrame
+            data frame containing dates and the highest number of concurrent active sessions at this date
+        """
+        if self.data_cas is None:
+            out = pd.DataFrame(columns=["date", "num"])
+
+            # sequence of timepoints from 0:00 to 23:45 per day
+            out["date"] = pd.date_range(
+                self.data["block_start"].min()[0:11],
+                pd.to_datetime(self.data["block_end"].max()[0:11])
+                + dt.timedelta(days=1),
+                freq="15min",
+            )
+
+            # reduce sampling timepoints - efficiency measure
+            out.index = out["date"]
+            out = out.between_time("08:00", "18:00")
+
+            intervals = self.data[["block_start", "block_end"]]
+            intervals["block_start"] = pd.to_datetime(intervals["block_start"])
+            intervals["block_end"] = pd.to_datetime(intervals["block_end"])
+
+            out["num"] = out["date"].apply(
+                lambda x: len(intervals.query("block_start <= @x <= block_end"))
+            )
+
+            # highest number cas per day
+            out = out.resample("D", on="date").max().reset_index()
+
+            self.data_cas = out
+
+        return self.data_cas
+
+    def crop_data(self, first_date, last_date):
+        """
+        Set the data to the wanted interval.
 
         Parameters
         ---------
@@ -473,7 +514,7 @@ class DataSessions:
 
     def get_total_token_amount(self):
         """
-        Computes the total token usage
+        Compute the total token usage.
 
         Returns
         -------
@@ -488,3 +529,25 @@ class DataSessions:
         data = data[cols].sum()
 
         return data
+
+    def get_cas_statistics(self):
+        """
+        Compute the statistics for the concurrent active sessions.
+
+        Returns
+        -------
+        pd.Dataframe:
+             Maximum, Mean and Mean for weekdays for the concurrent active sessions
+        """
+
+        cas = self.get_cas()
+        cas_max = cas["num"].max()
+        cas_mean = round(cas["num"].mean(), 0)
+        cas_weekdays_mean = round(cas[cas.date.dt.dayofweek < 5]["num"].mean(), 0)
+
+        cas_statistics = {
+            "name": ["Max", "Mean", "Mean in weekdays"],
+            "values": [cas_max, cas_mean, cas_weekdays_mean],
+        }
+
+        return pd.DataFrame(cas_statistics)

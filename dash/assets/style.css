@@ -220,3 +220,11 @@ body {
     border-radius: 15px;
     color: white;
 }
+
+.table_without_head > thead {
+    display: none;
+}
+
+.table_without_head > :not(:first-child) {
+    border-top: 1px solid #edf0f1;
+}

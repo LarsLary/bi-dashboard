@@ -16,8 +16,8 @@ from computation.data import DataPings, DataSessions
 from computation.features import Features
 from dash import Dash, Input, Output, State, ctx, dash, dcc
 from dash.long_callback import DiskcacheLongCallbackManager
-from vis.additional_data_vis import get_total_amount_table
-from vis.graph_vis import empty_fig, get_token_graph
+from vis.additional_data_vis import get_cas_statistics, get_total_amount_table
+from vis.graph_vis import empty_fig, get_cas_graph, get_token_graph
 from vis.web_designs import body
 
 
@@ -67,12 +67,19 @@ def select_graph(menu_entry: str, session: DataSessions):
     plotly.express figure which is a selected graphical representation of the dataframe
     dbc.Table : A table which represents additional information to the graph
     """
-
     fig = empty_fig()
     additional = ""
     if menu_entry == "Token Consumption":
         fig = get_token_graph(session)
         additional = get_total_amount_table(session)
+
+        fig.update_layout(
+            xaxis_title="Time", yaxis_title="Token", legend_title="Products"
+        )
+    elif menu_entry == "Concurrent Active Sessions":
+        fig = get_cas_graph(session)
+        fig.update_layout(xaxis_title="Time", yaxis_title="CAS")
+        additional = get_cas_statistics(session)
     elif menu_entry == "Empty1":
         fig = empty_fig()
     elif menu_entry == "Empty2":
@@ -99,9 +106,6 @@ def select_graph(menu_entry: str, session: DataSessions):
         font_color=GRAPH_LINE_COLOR,
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=70, r=15, t=15, b=15),
-        xaxis_title="Time",
-        yaxis_title="Token",
-        legend_title="Products",
     )
 
     return fig, additional
@@ -121,7 +125,6 @@ def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
     -------
     date.Date which represents a given date
     """
-
     if sel_date is None or init_change:
         data = df.sort_values(
             by="block_start", ascending=asc, ignore_index=True
@@ -191,7 +194,6 @@ def update_output_div(
     date.Date which represents the last selected day in the calendar tool
     dict which represents a trimmed version of the complete dataframe
     """
-
     if data is not None:
         features = Features().get_data_features()
 
@@ -202,7 +204,7 @@ def update_output_div(
 
             """converting Strings representing date into data.Date dates"""
             data_pings = DataPings(pd.DataFrame.from_dict(pings), features)
-            sessions = DataSessions(df, data_pings, features, 5)
+            sessions = DataSessions(df, data_pings, features, 300)
 
             """checking if new data is loaded and new inital dates should be set"""
             new_data = False
@@ -240,7 +242,7 @@ def update_output_div(
         df_current = pd.DataFrame.from_dict(current_data)
 
         data_pings = DataPings(pd.DataFrame.from_dict(pings), features)
-        sessions = DataSessions(df_current, data_pings, features, 5)
+        sessions = DataSessions(df_current, data_pings, features, 300)
 
         """computation if a different representation of graph1 is selected"""
         if ctx.triggered_id == "dropdown1":
@@ -332,7 +334,6 @@ def load_data(set_progress: Callable, data: str, name: str):
     dict containing the extracted data sessions data out of the csv-file
     dict containing the extracted data pings data out of the csv-file
     """
-
     if data is not None:
         header_text = "Upload Report"
         set_progress((0, "0/5", header_text, "Converting Data"))
@@ -357,7 +358,7 @@ def load_data(set_progress: Callable, data: str, name: str):
         set_progress((60, "3/5", header_text, "Extracting DataSessions"))
 
         # 4. Extract DataSessions
-        data_session = DataSessions(pd.DataFrame([]), data_pings, features, 5)
+        data_session = DataSessions(pd.DataFrame([]), data_pings, features, 300)
         set_progress((80, "4/5", header_text, "Extracting Session Blocks"))
 
         # 5. Extract Session Blocks
@@ -409,7 +410,6 @@ def open_browser(port: int):
     -------
     None
     """
-
     sleep(1)
     if not os.environ.get("WERKZEUG_RUN_MAIN"):
         webbrowser.open_new(f"http://127.0.0.1:{port}/")
