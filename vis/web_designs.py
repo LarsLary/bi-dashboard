@@ -134,11 +134,11 @@ def body():
                             dbc.Col(
                                 dcc.Dropdown(
                                     [
-                                        "Token Consumption",
+                                        "Concurrent Active Sessions",
                                         "Empty1",
                                         "Empty2",
                                     ],
-                                    "Token Consumption",
+                                    "Empty1",
                                     id="dropdown2",
                                     className="dropdown",
                                     clearable=False,

@@ -31,3 +31,14 @@ def get_token_graph(session: DataSessions):
     ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
 
     return fig
+
+
+def get_cas_graph(session: DataSessions):
+    fig = px.line(
+        session.get_cas(),
+        x="date",
+        y="num",
+        render_mode="webgl",
+    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+
+    return fig
