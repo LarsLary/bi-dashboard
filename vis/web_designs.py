@@ -59,6 +59,9 @@ def header() -> html.Header:
     return header
 
 
+dropdown_list = ["Token Consumption", "Concurrent Active Sessions", "Product Usage"]
+
+
 def body():
     """
     Parameters
@@ -120,11 +123,7 @@ def body():
                         [
                             dbc.Col(
                                 dcc.Dropdown(
-                                    [
-                                        "Token Consumption",
-                                        "Empty1",
-                                        "Empty2",
-                                    ],
+                                    dropdown_list,
                                     "Token Consumption",
                                     id="dropdown1",
                                     className="dropdown",
@@ -133,12 +132,8 @@ def body():
                             ),
                             dbc.Col(
                                 dcc.Dropdown(
-                                    [
-                                        "Concurrent Active Sessions",
-                                        "Empty1",
-                                        "Empty2",
-                                    ],
-                                    "Empty1",
+                                    dropdown_list,
+                                    "Concurrent Active Sessions",
                                     id="dropdown2",
                                     className="dropdown",
                                     clearable=False,
