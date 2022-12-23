@@ -115,7 +115,8 @@ body {
     padding: 10px;
     color: #edf0f1;
     width: 700px;
-    height: 320px;
+    height: auto;
+    min-height: 300px;
     border-radius: 15px;
     background-color: #171717;
     box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
@@ -201,14 +202,16 @@ body {
     color: #43CBFF;
     width: auto;
     height: auto;
+    margin: 5px;
+}
+
+.multi_additional {
+    display: flex;
 }
 
 .progress-div {
     visibility: hidden;
-    padding-top: 5%;
-    padding-bottom: 5%;
-    padding-left: 10%;
-    padding-right: 10%;
+    padding: 5% 10%;
     background: linear-gradient(110deg, #7367F0, #3D396A);
     width: 80%;
     position: absolute;

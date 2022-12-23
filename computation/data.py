@@ -147,6 +147,8 @@ class DataSessions:
         feature was used in appropriate block and one column containing the total cost appropriate block
     data_with_daily_token_cost : pd.DataFrame
         data frame containing cost of each feature per day, as well as total cost per day
+    feature_package_combination: pd.DataFrame
+        data frame containing how often a feature with which features in combination is used daily
 
     Methods
     -------
@@ -160,6 +162,8 @@ class DataSessions:
         return sessions with feature usage cost
     get_data_with_daily_token_cost()
         return daily feature usage cost
+    get_feature_package_combination()
+        return daily feature package combinations
     """
 
     def __init__(
@@ -187,6 +191,7 @@ class DataSessions:
         self.data_with_token_cost = None
         self.data_with_daily_token_cost = None
         self.data_cas = None
+        self.feature_package_combination = None
 
     def extract_session_blocks(self):
         """Create session blocks.
@@ -407,6 +412,7 @@ class DataSessions:
         data : pd.DataFrame
         first_date : String
         last_date : String
+        feat_names : list of String
         """
         if self.data_with_daily_token_cost is None:
             if self.data_with_token_cost is None:
@@ -422,20 +428,10 @@ class DataSessions:
                 ],
                 axis="columns",
             )
+            feat_names = self.features["keyword"].tolist()
+            feat_names.append("total")
             data["block_start"] = data["block_start"].str[:10]
-
-            data = (
-                data.groupby(["block_start"])
-                .agg(
-                    Viewing=("Viewing", "sum"),
-                    DMU=("DMU", "sum"),
-                    Collaboration=("Collaboration", "sum"),
-                    XR=("XR", "sum"),
-                    ModelTracking=("ModelTracking", "sum"),
-                    total=("total", "sum"),
-                )
-                .reset_index()
-            )
+            data = data.groupby(["block_start"])[feat_names].sum().reset_index()
 
             # make sure that indices exist correctly
             data.rename(columns={"block_start": "date"}, inplace=True)
@@ -481,7 +477,7 @@ class DataSessions:
             out.index = out["date"]
             out = out.between_time("08:00", "18:00")
 
-            intervals = self.data[["block_start", "block_end"]]
+            intervals = self.data[["block_start", "block_end"]].copy()
             intervals["block_start"] = pd.to_datetime(intervals["block_start"])
             intervals["block_end"] = pd.to_datetime(intervals["block_end"])
 
@@ -529,6 +525,47 @@ class DataSessions:
         data = data[cols].sum()
 
         return data
+
+    def get_package_combination_percentage(self):
+        """
+        Return the amount of possible feature in percentage.
+
+        Returns
+        ---------
+        feature_package_combination: pd.DataFrame
+            data containing usage of possible feature packages
+        """
+        if self.feature_package_combination is None:
+            if self.data_with_feature_use is None:
+                self.get_data_with_feature_use()
+        feat_names = self.features["keyword"].tolist()
+        fpc_data = []
+        for i in range(1, 2 ** len(feat_names)):
+            combination = []
+            data = self.data_with_feature_use
+            j = 0
+            for fn in feat_names:
+                if (2**j & i) > 0:
+                    combination.append(fn)
+                    data = data[self.data_with_feature_use[fn] == 1]
+                else:
+                    data = data[self.data_with_feature_use[fn] == 0]
+                j += 1
+            total_rows = len(self.data_with_feature_use.index)
+            num_of_combination = len(data.index)
+            fpc_data.append(
+                [", ".join(combination), (num_of_combination / total_rows) * 100]
+            )
+
+        self.feature_package_combination = pd.DataFrame(
+            fpc_data,
+            columns=[
+                "package_names",
+                "usage",
+            ],
+        )
+
+        return self.feature_package_combination
 
     def get_cas_statistics(self):
         """

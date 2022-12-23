@@ -16,8 +16,13 @@ from computation.data import DataPings, DataSessions
 from computation.features import Features
 from dash import Dash, Input, Output, State, ctx, dash, dcc
 from dash.long_callback import DiskcacheLongCallbackManager
-from vis.additional_data_vis import get_cas_statistics, get_total_amount_table
-from vis.graph_vis import empty_fig, get_cas_graph, get_token_graph
+from vis.additional_data_vis import (
+    combine_additional,
+    get_cas_statistics,
+    get_package_combination_table,
+    get_total_amount_table,
+)
+from vis.graph_vis import empty_fig, get_cas_graph, get_fpc_graph, get_token_graph
 from vis.web_designs import body
 
 
@@ -71,19 +76,21 @@ def select_graph(menu_entry: str, session: DataSessions):
     additional = ""
     if menu_entry == "Token Consumption":
         fig = get_token_graph(session)
-        additional = get_total_amount_table(session)
-
+        additional1 = get_total_amount_table(session)
+        additional2 = get_package_combination_table(session)
+        additional = combine_additional([additional1, additional2])
         fig.update_layout(
-            xaxis_title="Time", yaxis_title="Token", legend_title="Products"
+            xaxis_title="Time",
+            yaxis_title="Token",
+            legend_title="Products",
         )
+    elif menu_entry == "Product Usage":
+        fig = get_fpc_graph(session)
+        fig.update_layout(xaxis_title="Products", yaxis_title="Usage (%)")
     elif menu_entry == "Concurrent Active Sessions":
         fig = get_cas_graph(session)
         fig.update_layout(xaxis_title="Time", yaxis_title="CAS")
         additional = get_cas_statistics(session)
-    elif menu_entry == "Empty1":
-        fig = empty_fig()
-    elif menu_entry == "Empty2":
-        fig = empty_fig()
 
     fig.update_traces(hovertemplate=None, hoverinfo="skip")
 

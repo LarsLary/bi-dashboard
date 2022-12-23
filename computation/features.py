@@ -52,13 +52,17 @@ class Features:
 
     def __init__(self):
         """Declare/Initialize features."""
+        # self.features = pd.DataFrame(
+        #     {
+        #         "keyword": ["Viewing", "DMU", "Collaboration", "XR", "ModelTracking"],
+        #         "bitmask": [0x80000, 0x100000, 0x200000, 0x400000, 0x800000],
+        #         "token_consumption": [10, 15, 20, 25, 35],
+        #     }
         self.features = pd.DataFrame(
             {
-                "keyword": ["Viewing", "DMU", "Collaboration", "XR", "ModelTracking"],
-                "fullname": ["", "", "", "", ""],
-                "bitmask": [0x80000, 0x100000, 0x200000, 0x400000, 0x800000],
-                "package": [True, True, True, True, True],
-                "token_consumption": [10, 15, 20, 25, 35],
+                "keyword": ["Viewing", "DMU", "Collaboration"],
+                "bitmask": [0x80000, 0x100000, 0x200000],
+                "token_consumption": [10, 15, 20],
             }
         )
 
