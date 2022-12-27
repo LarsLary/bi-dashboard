@@ -231,3 +231,10 @@ body {
 .table_without_head > :not(:first-child) {
     border-top: 1px solid #edf0f1;
 }
+
+
+/*anders gestalten? */
+.tab {
+    background-color: #1e1e1e !important;
+    color: white !important;
+}
