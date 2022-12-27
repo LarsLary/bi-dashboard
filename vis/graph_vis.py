@@ -37,7 +37,7 @@ def get_token_graph(session: DataSessions):
     fig = px.line(
         session.get_data_with_daily_token_cost(),
         x="date",
-        y=["Viewing", "DMU", "Collaboration", "XR", "ModelTracking", "total"],
+        y=["Viewing", "DMU", "Collaboration", "total"],
         render_mode="webgl",
     ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
 

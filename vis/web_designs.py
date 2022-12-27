@@ -3,7 +3,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 
-def header() -> html.Header:
+def header_feature() -> html.Header:
     """
     Parameters
     ----------
@@ -11,7 +11,7 @@ def header() -> html.Header:
 
     Returns
     -------
-    html.Header which describes the header of the dashboard
+    html.Header which describes the header of the Feature Usage Tab
     """
 
     header = html.Header(
@@ -62,7 +62,7 @@ def header() -> html.Header:
 dropdown_list = ["Token Consumption", "Concurrent Active Sessions", "Product Usage"]
 
 
-def body():
+def body_feature():
     """
     Parameters
     ----------
@@ -70,12 +70,11 @@ def body():
 
     Returns
     -------
-    html.Div which represents the html body of the dashboard frontend
+    html.Div which represents the html body of the dashboard tab Feature Usage Frontend
     """
 
     return html.Div(
         [
-            header(),
             html.Div(
                 [
                     html.Div(
@@ -177,5 +176,75 @@ def body():
                 className="progress-div",
                 id="progress_div",
             ),
+        ]
+    )
+
+
+def tab_layout():
+    """
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    html.Div which represents the html body of the complete dashboard Frontend
+    """
+
+    return dcc.Tabs(
+        [
+            dcc.Tab(
+                label="Feature Usage",
+                children=[header_feature(), body_feature()],
+                className="tab",
+            ),
+            dcc.Tab(
+                label="License Usage",
+                children=[header_license(), body_license()],
+                className="tab",
+            ),
+        ]
+    )
+
+
+def header_license() -> html.Header:
+    """
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    html.Div which represents the html header of the dashboard tab License Usage Frontend
+    """
+    header = html.Header(
+        [
+            html.Div(
+                dcc.Upload("Upload Report", id="upload_license", className="button"),
+                className="col-2 center",
+            )
+        ]
+    )
+
+    return header
+
+
+def body_license():
+    """
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    html.Div which represents the html body of the dashboard tab License Usage Frontend
+    """
+    return html.Div(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(html.Div(id="graph_data3", className="graph_data")),
+                ]
+            )
         ]
     )

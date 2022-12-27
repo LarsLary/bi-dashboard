@@ -23,7 +23,7 @@ from vis.additional_data_vis import (
     get_total_amount_table,
 )
 from vis.graph_vis import empty_fig, get_cas_graph, get_fpc_graph, get_token_graph
-from vis.web_designs import body
+from vis.web_designs import tab_layout
 
 
 GRAPH_LINE_COLOR = "#edf0f1"
@@ -39,7 +39,7 @@ app = Dash(
 )
 app.title = "Token Dashboard Threedy"
 app._favicon = "threedy_favicon.png"
-app.layout = dbc.Container(body(), fluid=True)
+app.layout = dbc.Container(tab_layout(), fluid=True)
 
 
 def convert_report_to_df(data):
