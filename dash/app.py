@@ -146,8 +146,7 @@ def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
 
 
 @app.callback(
-    Output(component_id="cal_days", component_property="children"),
-    Output(component_id="daysUsed", component_property="children"),
+    Output(component_id="file-data-table", component_property="children"),
     Output(component_id="graph1", component_property="children"),
     Output(component_id="graph2", component_property="children"),
     Output(component_id="graph_data1", component_property="children"),
@@ -162,6 +161,7 @@ def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
     Input("data-store", "data"),
     Input("current-data", "data"),
     Input("pings", "data"),
+    Input("filename", "data"),
     prevent_inital_call=True,
 )
 def update_output_div(
@@ -172,6 +172,7 @@ def update_output_div(
     data: dict,
     current_data: dict,
     pings: dict,
+    filename: str,
 ):
     """
     Parameters
@@ -185,6 +186,7 @@ def update_output_div(
     data : dict which represents the dataframe extracted out of the loaded csv-file
     current_data : dict which represents the dataframe stored in the memory
     pings : dict which represents the dataframe containing all the pings
+    filename : str which is the name of the file from which the pings come from
 
     main computation of the frontend
 
@@ -210,7 +212,7 @@ def update_output_div(
             df = pd.DataFrame.from_dict(data)
 
             """converting Strings representing date into data.Date dates"""
-            data_pings = DataPings(pd.DataFrame.from_dict(pings), features)
+            data_pings = DataPings(filename, pd.DataFrame.from_dict(pings), features)
             sessions = DataSessions(df, data_pings, features, 300)
 
             """checking if new data is loaded and new inital dates should be set"""
@@ -224,18 +226,12 @@ def update_output_div(
             """trimming the dataframe to fit into the selected dates"""
             sessions.crop_data(first, last)
 
-            """getting the whole duration of the trimmed dataframe"""
-            all_days = str(len(sessions.data_pings.get_sequence_of_days()))
-
-            """getting the metered days"""
-            days = str(len(sessions.data_pings.get_metered_days()))
             """creating the both graphs based on the chosen entry in the dropdown menu"""
             fig1, additional1 = select_graph(drop1, sessions)
             fig2, additional2 = select_graph(drop2, sessions)
 
             return (
-                all_days,
-                days,
+                get_overview_table(sessions.data_pings),
                 dcc.Graph(figure=fig1, className="graph"),
                 dcc.Graph(figure=fig2, className="graph"),
                 additional1,
@@ -248,7 +244,7 @@ def update_output_div(
         """converting the dict containing all data back into a pd.Dataframe"""
         df_current = pd.DataFrame.from_dict(current_data)
 
-        data_pings = DataPings(pd.DataFrame.from_dict(pings), features)
+        data_pings = DataPings(filename, pd.DataFrame.from_dict(pings), features)
         sessions = DataSessions(df_current, data_pings, features, 300)
 
         """computation if a different representation of graph1 is selected"""
@@ -257,7 +253,6 @@ def update_output_div(
             fig1, additional1 = select_graph(drop1, sessions)
 
             return (
-                dash.no_update,
                 dash.no_update,
                 dcc.Graph(figure=fig1, className="graph"),
                 dash.no_update,
@@ -276,7 +271,6 @@ def update_output_div(
             return (
                 dash.no_update,
                 dash.no_update,
-                dash.no_update,
                 dcc.Graph(figure=fig2, className="graph"),
                 dash.no_update,
                 additional2,
@@ -286,8 +280,7 @@ def update_output_div(
             )
 
     return (
-        "",
-        "",
+        get_overview_table(None),
         dcc.Graph(figure=empty_fig()),
         dcc.Graph(figure=empty_fig()),
         "",
@@ -298,19 +291,71 @@ def update_output_div(
     )
 
 
+def get_overview_table(data_pings: DataPings) -> dash.html.Tbody:
+    """
+    Creates an html table that contains some key metrics for given DataPings
+
+    Parameters
+    ----------
+    data_pings : DataPings which represents the selected entry in the dropdown menu with the id 'dropdown1'
+
+    Returns
+    -------
+    dash.html.Tbody containing 4 rows: report, lines, calendar days and metered days
+    """
+    if data_pings is not None:
+        filename = str(data_pings.get_filename())
+        lines = str(len(data_pings.get_pings().index))
+        cal_days = str(len(data_pings.get_sequence_of_days()))
+        metered_days = str(len(data_pings.get_metered_days()))
+    else:
+        filename = ""
+        lines = ""
+        cal_days = ""
+        metered_days = ""
+
+    return dash.html.Tbody(
+        [
+            dash.html.Tr(
+                [
+                    dash.html.Td("Report:", className="info-table-cell"),
+                    dash.html.Td(filename, className="info-table-cell"),
+                ]
+            ),
+            dash.html.Tr(
+                [
+                    dash.html.Td("Lines:", className="info-table-cell"),
+                    dash.html.Td(lines, className="info-table-cell"),
+                ]
+            ),
+            dash.html.Tr(
+                [
+                    dash.html.Td("Calendar Days:", className="info-table-cell"),
+                    dash.html.Td(cal_days, className="info-table-cell"),
+                ]
+            ),
+            dash.html.Tr(
+                [
+                    dash.html.Td("Metered Days:", className="info-table-cell"),
+                    dash.html.Td(metered_days, className="info-table-cell"),
+                ]
+            ),
+        ]
+    )
+
+
 @app.long_callback(
     output=[
-        Output(component_id="lines", component_property="children"),
-        Output(component_id="reportName", component_property="children"),
         Output(component_id="data-store", component_property="data"),
         Output(component_id="pings", component_property="data"),
+        Output(component_id="filename", component_property="data"),
     ],
     inputs=[
         Input(component_id="upload", component_property="contents"),
         State("upload", "filename"),
     ],
     running=[
-        (Output("content", "style"), {"filter": "grayscale(100%)"}, {}),
+        (Output("main", "style"), {"filter": "grayscale(100%)"}, {}),
         (Output("header", "style"), {"filter": "grayscale(100%)"}, {}),
         (
             Output("progress_div", "style"),
@@ -343,37 +388,34 @@ def load_data(set_progress: Callable, data: str, name: str):
     """
     if data is not None:
         header_text = "Upload Report"
-        set_progress((0, "0/5", header_text, "Converting Data"))
+        set_progress((0, "0/4", header_text, "Converting Data and Extracting Features"))
         # without "sleep()" the user cannot see the first progress on the website
         sleep(1)
 
         # 1. Convert Data
         filename = name.split(".")[0]
         datagram = convert_report_to_df(data)
-
-        set_progress((20, "1/5", header_text, "Getting Number of Lines and Features"))
-        sleep(1)
-
-        # 2. Get Number of Lines and Features
-        lines = str(len(datagram.index))
         features = Features().get_data_features()
-        set_progress((40, "2/5", header_text, "Extracting DataPings"))
-        sleep(1)
+        set_progress((25, "1/4", header_text, "Extracting DataPings"))
 
-        # 3. Extract DataPings
-        data_pings = DataPings(datagram, features)
-        set_progress((60, "3/5", header_text, "Extracting DataSessions"))
+        # 2. Extract DataPings
+        data_pings = DataPings(filename, datagram, features)
+        set_progress((50, "2/4", header_text, "Extracting DataSessions"))
 
-        # 4. Extract DataSessions
+        # 3. Extract DataSessions
         data_session = DataSessions(pd.DataFrame([]), data_pings, features, 300)
-        set_progress((80, "4/5", header_text, "Extracting Session Blocks"))
+        set_progress((75, "3/4", header_text, "Extracting Session Blocks"))
 
-        # 5. Extract Session Blocks
+        # 4. Extract Session Blocks
         data_session.extract_session_blocks()
-        set_progress((100, "5/5", header_text, "Loaded Data Successfully"))
+        set_progress((100, "4/4", header_text, "Loaded Data Successfully"))
 
-        return lines, filename, data_session.data.to_dict(), data_pings.data.to_dict()
-    return "", "", None, None
+        return (
+            data_session.data.to_dict(),
+            data_pings.data.to_dict(),
+            data_pings.get_filename(),
+        )
+    return None, None, ""
 
 
 @app.callback(

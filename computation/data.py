@@ -23,6 +23,8 @@ class DataPings:
         list of dates, on which at least one ping metered happened
     day_sequence_of_timespan : list of dt.Date
         list of dates between first and last metered date (both inclusive)
+    filename: str
+        name of the file from which the pings come from
 
     Methods
     -------
@@ -32,15 +34,18 @@ class DataPings:
         remove entries with unmetered bitmasks
     get_metered_days()
         return metered_days
+    get_filename()
+        return filename
     get_sequence_of_days()
         return day_sequence_of_timespan
     """
 
-    def __init__(self, data: pd.DataFrame, features: pd.DataFrame):
+    def __init__(self, filename: str, data: pd.DataFrame, features: pd.DataFrame):
         """Declare/Initialize variables and filter pings.
 
         Parameters
         ----------
+        filename: str
         data : np.DataFrame
         features : np.DataFrame
         """
@@ -48,11 +53,12 @@ class DataPings:
         self.features = features
         self.metered_days = None
         self.day_sequence_of_timespan = None
+        self.filename = filename
 
         self.filter_out_unmetered_bitmask_entries()
         self.data = self.data.drop_duplicates()
 
-    def get_pings(self):
+    def get_pings(self) -> pd.DataFrame:
         """Return pings.
 
         Returns
@@ -62,7 +68,7 @@ class DataPings:
         """
         return self.data
 
-    def filter_out_unmetered_bitmask_entries(self):
+    def filter_out_unmetered_bitmask_entries(self) -> None:
         """
         Filter out unmetered bitmask entries.
 
@@ -73,7 +79,7 @@ class DataPings:
         )
         self.data = self.data[self.data["feature_mask"] & metered_bitmasks > 0]
 
-    def get_metered_days(self):
+    def get_metered_days(self) -> list:
         """
         Return metered_days.
 
@@ -98,7 +104,16 @@ class DataPings:
             self.metered_days = dates
         return self.metered_days
 
-    def get_sequence_of_days(self):
+    def get_filename(self) -> str:
+        """Returns the name of the file from which the pings come from
+
+        Returns
+        ----------
+        filename : str
+        """
+        return self.filename
+
+    def get_sequence_of_days(self) -> list:
         """
         Return day_sequence_of_timespan.
 

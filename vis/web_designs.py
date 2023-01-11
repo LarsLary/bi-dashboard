@@ -78,81 +78,74 @@ def body_feature():
             html.Div(
                 [
                     html.Div(
+                        [],
+                        className="left-column",
+                    ),
+                    html.Div(  # content: graphs + data
                         [
-                            html.Div(
+                            dbc.Row(
                                 [
-                                    "Report: ",
-                                    html.Div(
-                                        "", id="reportName", className="info-text"
+                                    dbc.Col(
+                                        dcc.Dropdown(
+                                            dropdown_list,
+                                            "Token Consumption",
+                                            id="dropdown1",
+                                            className="dropdown",
+                                            clearable=False,
+                                        )
+                                    ),
+                                    dbc.Col(
+                                        dcc.Dropdown(
+                                            dropdown_list,
+                                            "Concurrent Active Sessions",
+                                            id="dropdown2",
+                                            className="dropdown",
+                                            clearable=False,
+                                        )
+                                    ),
+                                ]
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(html.Div(id="graph1", className="graph")),
+                                    dbc.Col(html.Div(id="graph2", className="graph")),
+                                ]
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        html.Div(
+                                            id="graph_data1",
+                                            className="graph_data",
+                                        )
+                                    ),
+                                    dbc.Col(
+                                        html.Div(
+                                            id="graph_data2",
+                                            className="graph_data",
+                                        )
                                     ),
                                 ],
-                                className="box1",
-                            ),
-                            html.Div(
-                                [
-                                    "Lines: ",
-                                    html.Div("", id="lines", className="info-text"),
-                                ],
-                                className="box2",
-                            ),
-                            html.Div(
-                                [
-                                    "Calender Days: ",
-                                    html.Div("", id="cal_days", className="info-text"),
-                                ],
-                                className="box3",
-                            ),
-                            html.Div(
-                                [
-                                    "Metered Days: ",
-                                    html.Div("", id="daysUsed", className="info-text"),
-                                ],
-                                className="box4",
                             ),
                         ],
-                        className="info",
+                        className="content",
+                        id="content",
                     ),
-                    dbc.Row(
+                    html.Div(  # info content on the right side: file data
                         [
-                            dbc.Col(html.Div(id="graph1", className="graph")),
-                            dbc.Col(html.Div(id="graph2", className="graph")),
-                        ]
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dcc.Dropdown(
-                                    dropdown_list,
-                                    "Token Consumption",
-                                    id="dropdown1",
-                                    className="dropdown",
-                                    clearable=False,
-                                )
-                            ),
-                            dbc.Col(
-                                dcc.Dropdown(
-                                    dropdown_list,
-                                    "Concurrent Active Sessions",
-                                    id="dropdown2",
-                                    className="dropdown",
-                                    clearable=False,
-                                )
-                            ),
-                        ]
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(html.Div(id="graph_data1", className="graph_data")),
-                            dbc.Col(html.Div(id="graph_data2", className="graph_data")),
-                        ]
+                            dbc.Table(id="file-data-table", className="info-table"),
+                        ],
+                        id="info-column",
+                        className="info-column",
                     ),
                 ],
-                className="content",
-                id="content",
+                id="main",
+                className="main",
             ),
             dcc.Store(id="data-store", data=[]),
             dcc.Store(id="current-data", data=[]),
             dcc.Store(id="pings", data=[]),
+            dcc.Store(id="filename", data=""),
             html.Div(
                 [
                     html.H1(

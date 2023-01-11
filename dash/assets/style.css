@@ -1,4 +1,22 @@
 * {
+    /* Colors */
+    --background-color: #121212;
+    --background-dark-color: #060606;
+    --background-light-color: #181818;
+
+    --bright-color: #edf0f1;
+    --bright-opacity-15-color: rgba(237, 240, 241, 0.15);
+    --bright-opacity-45-color: rgba(237, 240, 241, 0.45);
+    --bright-opacity-3-color: rgba(237, 240, 241, 0.03);
+
+    --accent-color-1: #43CBFF;
+
+    /* Shadows */
+    --default-shadow: black 0px 5px 10px;
+    --default-shadow-hover: var(--bright-opacity-45-color) 0px 5px 10px;
+
+
+    /* Global Attributes */
     box-sizing: border-box;
     font-family: Roboto, sans-serif;
     font-size: 16px;
@@ -10,13 +28,27 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: #edf0f1;
-
-    background-color: #1e1e1e;
+    color: var(--bright-color);
+    background-color: var(--background-color);
 }
 
 body {
-    background-color: #1e1e1e;
+    background-color: var(--background-color);
+}
+
+.main {
+    width: 100% auto;
+    margin: 0px;
+    padding: 0px;
+}
+
+.content {
+    margin: 0px;
+    padding: 0px;
+    display: grid;
+    place-items: center;
+    width: 76%;
+    float: left;
 }
 
 .logo {
@@ -33,180 +65,95 @@ body {
 
 .button {
     width: 200px;
-    color: #43CBFF;
+    color: var(--accent-color-1);
     text-align: center;
     padding: 9px 25px;
-    background-color: rgba(23, 23, 23, 1);
+    background-color: var(--background-dark-color);
     border: none;
     border-radius: 50px;
     cursor: pointer;
     transition: all 0.3s ease 0s;
-    box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
+    box-shadow: var(--default-shadow);
 }
 
 .button:hover {
-    background-color: rgba(78, 178, 248, 0.1);
-    box-shadow: rgba(0, 0, 0, 0.2) 0px 5px 10px;
+    box-shadow: var(--default-shadow-hover);
 }
 
 .time {
-    color: #43CBFF;
+    color: var(--accent-color-1);
     padding-left: 5px;
     border-style: solid;
     border-width: 2px;
     border-radius: 50px;
-    border-color: #171717;
+    border-color: var(--background-dark-color);
 
 }
 
-.box1,
-.box2,
-.box3,
-.box4 {
-    margin: 10px;
-    padding: 10px;
-    height: 100px;
-    width: 400px;
-    border-radius: 15px;
-    box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
+.left-column {
+    width: 12%;
+    min-height: 1px;
+    float: left;
 }
 
-.box1 {
-    background: linear-gradient(110deg, #FEB692, #EA5455)
+.info-column {
+    vertical-align: top;
+    width: 12%;
+    float: left;
 }
 
-.box2 {
-    background: linear-gradient(110deg, #CE9FFC, #7367F0)
+.info-table {
+    margin: 0px;
 }
 
-.box3 {
-    background: linear-gradient(110deg, #F97794, #623AA2)
-}
-
-.box4 {
-    background: linear-gradient(110deg, #43CBFF, #9708CC)
-}
-
-.info-text {
-    font-size: 30px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.info {
-    color: #edf0f1;
-    font-weight: bold;
-    width: 70%;
-    display: flex;
-    justify-content: space-evenly;
+.info-table-cell {
+    font-size: 14px;
+    border: none;
+    color: var(--bright-color)
 }
 
 .graph {
-    color: #edf0f1;
-    background-color: #171717;
+    color: var(--bright-color);
+    background-color: var(--background-dark-color);
     height: 450px;
-    width: 700px;
+    width: 36vw;
+    min-width: 600px;
     border-radius: 15px;
-    box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
-
 }
 
 .graph_data {
+    margin-top: 10px;
+    margin-bottom: 40px;
     padding: 10px;
-    color: #edf0f1;
-    width: 700px;
+    color: var(--bright-color);
+    width: 36vw;
+    min-width: 600px;
     height: auto;
     min-height: 300px;
     border-radius: 15px;
-    background-color: #171717;
-    box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
+    background-color: var(--background-dark-color);
 }
 
 .dropdown {
     text-align: center;
     padding: 10px;
-    color: #23252A;
-    width: 700px;
-
-}
-
-.content {
-    display: grid;
-    place-items: center;
-}
-
-
-.DateRangePickerInput__withBorder,
-.DateInput,
-.DateInput_input {
-    border-radius: 50px;
-    color: #43CBFF;
-    background-color: #171717;
-    border-color: #171717;
-}
-
-
-.DayPicker__withBorder,
-.DateRangePicker_picker,
-.CalendarMonth,
-.CalendarMonth_caption,
-.CalendarDay,
-.DayPickerNavigation_rightButton__horizontalDefault,
-.DayPickerNavigation_leftButton__horizontalDefault,
-.CalendarMonthGrid,
-.DayPickerKeyboardShortcuts_panel {
-    color: #43CBFF;
-    background-color: #171717;
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.DayPicker_weekHeader {
-    color: #edf0f1;
-}
-
-.CalendarDay:hover,
-.DayPickerNavigation_rightButton__horizontalDefault:hover,
-.DayPickerNavigation_leftButton__horizontalDefault:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.Select-control,
-.Select-value,
-.Select-input,
-.has-value.Select--single>.Select-control .Select-value .Select-value-label,
-.is-open>.Select-control {
-    color: #43CBFF;
-    background-color: #171717;
-    border-radius: 10px;
-    border-color: #171717;
-}
-
-.Select-menu-outer {
-    width: 680px;
-    color: #43CBFF;
-    background-color: #171717;
-    border-radius: 10px;
-    border-color: #1e1e1e;
-}
-
-.Select-control {
-    box-shadow: rgba(0, 0, 0, 0.4) 0px 5px 10px;
-}
-
-.Select-control:hover {
-    box-shadow: rgba(0, 0, 0, 0.2) 0px 5px 10px;
+    width: 36vw;
+    min-width: 600px;
 }
 
 .table {
-    color: #43CBFF;
+    color: var(--accent-color-1);
     width: auto;
     height: auto;
     margin: 5px;
 }
 
-.multi_additional {
-    display: flex;
+.table_without_head>thead {
+    display: none;
+}
+
+.table_without_head> :not(:first-child) {
+    border-top: 1px solid var(--bright-color);
 }
 
 .progress-div {
@@ -219,22 +166,80 @@ body {
     left: 50%;
     margin-right: -50%;
     transform: translate(-50%, -50%);
-    border: 2px solid #ffffff;
+    border: 2px solid var(--bright-color);
     border-radius: 15px;
-    color: white;
+    color: var(--bright-color);
 }
-
-.table_without_head > thead {
-    display: none;
-}
-
-.table_without_head > :not(:first-child) {
-    border-top: 1px solid #edf0f1;
-}
-
 
 /*anders gestalten? */
 .tab {
-    background-color: #1e1e1e !important;
-    color: white !important;
+    background-color: var(--background-color) !important;
+    color: var(--bright-color) !important;
+}
+
+/* Classes used by Dash */
+.multi_additional {
+    display: flex;
+}
+
+.DateRangePickerInput__withBorder,
+.DateInput,
+.DateInput_input {
+    border-radius: 50px;
+    color: var(--accent-color-1);
+    background-color: var(--background-dark-color);
+    border-color: var(--background-dark-color);
+}
+
+
+.DayPicker__withBorder,
+.DateRangePicker_picker,
+.CalendarMonth,
+.CalendarMonth_caption,
+.CalendarDay,
+.DayPickerNavigation_rightButton__horizontalDefault,
+.DayPickerNavigation_leftButton__horizontalDefault,
+.CalendarMonthGrid,
+.DayPickerKeyboardShortcuts_panel {
+    color: var(--accent-color-1);
+    background-color: var(--background-dark-color);
+    border-color: var(--bright-opacity-15-color);
+}
+
+.DayPicker_weekHeader {
+    color: var(--bright-color);
+}
+
+.CalendarDay:hover,
+.DayPickerNavigation_rightButton__horizontalDefault:hover,
+.DayPickerNavigation_leftButton__horizontalDefault:hover {
+    background-color: var(--bright-opacity-15-color);
+    border-color: var(--bright-opacity-15-color);
+}
+
+.Select-control,
+.Select-value,
+.Select-input,
+.has-value.Select--single>.Select-control .Select-value .Select-value-label,
+.is-open>.Select-control {
+    color: var(--accent-color-1);
+    background-color: var(--background-dark-color);
+    border-radius: 10px;
+    border-color: var(--background-dark-color);
+}
+
+.Select-menu-outer {
+    width: 680px;
+    color: var(--accent-color-1);
+    background-color: var(--background-dark-color);
+    border-radius: 10px;
+    border-color: var(--background-color);
+}
+
+.Select-control {
+    box-shadow: var(--default-shadow);
+}
+
+.Select-control:hover {
+    box-shadow: var(--default-shadow-hover);
 }
