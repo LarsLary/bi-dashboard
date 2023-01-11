@@ -2,9 +2,9 @@ dirs := dash vis computation
 
 quality:
 	black --check --preview $(dirs)
-	isort --check-only --profile black $(dirs)
+	isort --check-only $(dirs)
 	flake8 $(dirs)
 	
 format:
-	isort --profile black $(dirs)
+	isort $(dirs)
 	black --preview $(dirs)
