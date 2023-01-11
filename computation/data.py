@@ -160,8 +160,8 @@ class DataSessions:
     data_with_token_cost : pd.DataFrame
         data, appended by one column for each feature containing 0 or the cost of the feature, depending on if the
         feature was used in appropriate block and one column containing the total cost appropriate block
-    data_with_daily_token_cost : pd.DataFrame
-        data frame containing cost of each feature per day, as well as total cost per day
+    data_cas : pd.DataFrame
+        data frame containing the concurrent active sessions
     feature_package_combination: pd.DataFrame
         data frame containing how often a feature with which features in combination is used daily
 
@@ -175,10 +175,18 @@ class DataSessions:
         return feature usage information from given bitmasks
     get_data_with_token_cost()
         return sessions with feature usage cost
-    get_data_with_daily_token_cost()
-        return daily feature usage cost
-    get_feature_package_combination()
+    get_token_consumption()
+        return token consumption of given interval.
+    get_cas()
+        return the number of concurrent active sessions by date.
+    crop_data()
+        sets the data to the wanted interval
+    get_total_token_amount()
+        return the total token usage.
+    get_package_combination_percentage()
         return daily feature package combinations
+    get_cas_statistics()
+        return the statistics for the concurrent active sessions
     """
 
     def __init__(
@@ -204,7 +212,6 @@ class DataSessions:
         self.data = data
         self.data_with_feature_use = None
         self.data_with_token_cost = None
-        self.data_with_daily_token_cost = None
         self.data_cas = None
         self.feature_package_combination = None
 
@@ -411,101 +418,102 @@ class DataSessions:
 
         return self.data_with_token_cost
 
-    def get_data_with_daily_token_cost(self):
+    def get_token_consumption(self, interval: str = "D"):
         """
-        Return data_with_daily_token_cost.
+        Return token consumption of given interval.
 
-        If data_with_daily_token_cost is None, create daily cost information per feature and total.
+        Parameters
+        ----------
+        interval : str
+            length of interval
+            for minutes use: "[num of min]min"
+            for hours use: "[num of hours]H"
+            for days use: "[num of days]D"
+            full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
 
         Returns
         -------
-        data_with_daily_token_cost : pd.DataFrame
-            data frame containing cost of each feature per day, as well as total cost per day
-
-        Yields
-        ------
-        data : pd.DataFrame
-        first_date : String
-        last_date : String
-        feat_names : list of String
+        pd.DataFrame
+            data frame containing cost of each feature per chosen interval, as well as total cost per chosen interval
         """
-        if self.data_with_daily_token_cost is None:
-            if self.data_with_token_cost is None:
-                self.get_data_with_token_cost()
-            data = self.data_with_token_cost.copy()
-            data = data.drop(
-                [
-                    "cluster_id",
-                    "app_instance_id",
-                    "feature_mask",
-                    "block_end",
-                    "last_ping",
-                ],
-                axis="columns",
-            )
-            feat_names = self.features["keyword"].tolist()
-            feat_names.append("total")
-            data["block_start"] = data["block_start"].str[:10]
-            data = data.groupby(["block_start"])[feat_names].sum().reset_index()
+        if self.data_with_token_cost is None:
+            self.get_data_with_token_cost()
+        data = self.data_with_token_cost.copy()
+        data = data.drop(
+            [
+                "cluster_id",
+                "app_instance_id",
+                "feature_mask",
+                "block_end",
+                "last_ping",
+            ],
+            axis="columns",
+        )
+        feat_names = self.features["keyword"].tolist()
+        feat_names.append("total")
+        data["block_start"] = pd.to_datetime(data["block_start"])
+        data = data.groupby(pd.Grouper(key="block_start", freq=interval))[
+            feat_names
+        ].sum()
+        data = data.reset_index()  # make sure that indices exist correctly
 
-            # make sure that indices exist correctly
-            data.rename(columns={"block_start": "date"}, inplace=True)
+        data.rename(columns={"block_start": "time"}, inplace=True)
 
-            # add missing dates
-            data.sort_values(by="date")
-            first_date = data["date"].iloc[0]
-            last_date = data["date"].iloc[-1]
-            date_range = pd.date_range(first_date, last_date)
-            data = data.set_index("date")
-            data.index = pd.DatetimeIndex(data.index)
-            data = data.reindex(date_range, fill_value=0)
+        return data
 
-            # reset index to index numbers instead of date column
-            data = data.reset_index()
-            data = data.rename(columns={"index": "date"})
-
-            self.data_with_daily_token_cost = data
-
-        return self.data_with_daily_token_cost
-
-    def get_cas(self):
+    def get_cas(self, interval: str = "D"):
         """
         Get number of concurrent active sessions by date.
 
+        Parameters
+        ----------
+        interval : str
+            length of interval
+            for minutes use: "[num of min]min"
+            for hours use: "[num of hours]H"
+            for days use: "[num of days]D"
+            full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+
         Returns
         -------
-        data_cas : pd.DataFrame
-            data frame containing dates and the highest number of concurrent active sessions at this date
+        pd.DataFrame
+            data frame containing most active sessions (within 15 min) per given interval
+
+        Raises
+        ------
+        Exception
+            If self.block_length is not equal to 300
         """
-        if self.data_cas is None:
-            out = pd.DataFrame(columns=["date", "num"])
+        if self.block_length != 300:
+            raise Exception("Method only works with self.block_length == 300")
 
-            # sequence of timepoints from 0:00 to 23:45 per day
-            out["date"] = pd.date_range(
-                self.data["block_start"].min()[0:11],
-                pd.to_datetime(self.data["block_end"].max()[0:11])
-                + dt.timedelta(days=1),
-                freq="15min",
+        # remove sessions, that don't include one of the 15min-timestamps
+        s = self.data["block_start"].copy()
+        s = s[
+            (s.str[14:16].astype("int") % 15 >= 10)
+            | (
+                (s.str[14:16].astype("int") % 15 == 0)
+                & (s.str[17:19].astype("int") == 0)
             )
+        ]
 
-            # reduce sampling timepoints - efficiency measure
-            out.index = out["date"]
-            out = out.between_time("08:00", "18:00")
+        data = s.to_frame()
+        data = data.reset_index(drop=True)
+        data.rename(columns={"block_start": "time"}, inplace=True)
+        data["time"] = pd.to_datetime(data["time"])
+        data["amount"] = 1
 
-            intervals = self.data[["block_start", "block_end"]].copy()
-            intervals["block_start"] = pd.to_datetime(intervals["block_start"])
-            intervals["block_end"] = pd.to_datetime(intervals["block_end"])
+        # amount of sessions that are active at 15min-timestamps
+        data = data.groupby(pd.Grouper(key="time", label="right", freq="15min"))[
+            "amount"
+        ].sum()
+        data = data.reset_index()
 
-            out["num"] = out["date"].apply(
-                lambda x: len(intervals.query("block_start <= @x <= block_end"))
-            )
+        # find max num of 15min interval-sessions in given interval
+        data = data.groupby(pd.Grouper(key="time", freq=interval))["amount"].max()
+        data = data.reset_index()
 
-            # highest number cas per day
-            out = out.resample("D", on="date").max().reset_index()
-
-            self.data_cas = out
-
-        return self.data_cas
+        return data
 
     def crop_data(self, first_date, last_date):
         """
@@ -532,11 +540,11 @@ class DataSessions:
         pd.Dataframe:
                 total token usage for each product and total token usage
         """
-        if self.data_with_daily_token_cost is None:
-            self.get_data_with_daily_token_cost()
+        if self.data_with_token_cost is None:
+            self.get_data_with_token_cost()
         cols = self.features.keyword
         cols = pd.concat([cols, pd.Series(["total"])])
-        data = self.data_with_daily_token_cost.copy()
+        data = self.data_with_token_cost.copy()
         data = data[cols].sum()
 
         return data
@@ -593,9 +601,9 @@ class DataSessions:
         """
 
         cas = self.get_cas()
-        cas_max = cas["num"].max()
-        cas_mean = round(cas["num"].mean(), 0)
-        cas_weekdays_mean = round(cas[cas.date.dt.dayofweek < 5]["num"].mean(), 0)
+        cas_max = cas["amount"].max()
+        cas_mean = round(cas["amount"].mean(), 0)
+        cas_weekdays_mean = round(cas[cas.time.dt.dayofweek < 5]["amount"].mean(), 0)
 
         cas_statistics = {
             "name": ["Max", "Mean", "Mean in weekdays"],

@@ -34,9 +34,13 @@ def get_token_graph(session: DataSessions):
     plotly.express
         figure (px.line) which shows the token usage for each product by time
     """
+    if len(session.data_pings.get_metered_days()) <= 3:
+        data = session.get_token_consumption(interval="15min")
+    else:
+        data = session.get_token_consumption()
     fig = px.line(
-        session.get_data_with_daily_token_cost(),
-        x="date",
+        data,
+        x="time",
         y=["Viewing", "DMU", "Collaboration", "total"],
         render_mode="webgl",
     ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
@@ -74,10 +78,14 @@ def get_cas_graph(session: DataSessions):
     plotly.express
         figure (px.line) which shows the number of concurrent active sessions by time
     """
+    if len(session.data_pings.get_metered_days()) <= 3:
+        data = session.get_cas(interval="15min")
+    else:
+        data = session.get_cas()
     fig = px.line(
-        session.get_cas(),
-        x="date",
-        y="num",
+        data,
+        x="time",
+        y="amount",
         render_mode="webgl",
     ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
 
