@@ -5,7 +5,6 @@ features.py contains class Features.
 """
 import pandas as pd
 
-
 # # feature bitmasks
 #
 # API = 0x1,

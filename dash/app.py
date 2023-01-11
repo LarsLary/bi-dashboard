@@ -17,14 +17,12 @@ from computation.features import Features
 from dash import Dash, Input, Output, State, ctx, dash, dcc
 from dash.long_callback import DiskcacheLongCallbackManager
 from vis.additional_data_vis import (
-    combine_additional,
     get_cas_statistics,
     get_package_combination_table,
     get_total_amount_table,
 )
 from vis.graph_vis import empty_fig, get_cas_graph, get_fpc_graph, get_token_graph
 from vis.web_designs import tab_layout
-
 
 GRAPH_LINE_COLOR = "#edf0f1"
 
@@ -76,9 +74,7 @@ def select_graph(menu_entry: str, session: DataSessions):
     additional = ""
     if menu_entry == "Token Consumption":
         fig = get_token_graph(session)
-        additional1 = get_total_amount_table(session)
-        additional2 = get_package_combination_table(session)
-        additional = combine_additional([additional1, additional2])
+        additional = get_total_amount_table(session)
         fig.update_layout(
             xaxis_title="Time",
             yaxis_title="Token",
@@ -87,6 +83,7 @@ def select_graph(menu_entry: str, session: DataSessions):
     elif menu_entry == "Product Usage":
         fig = get_fpc_graph(session)
         fig.update_layout(xaxis_title="Products", yaxis_title="Usage (%)")
+        additional = get_package_combination_table(session)
     elif menu_entry == "Concurrent Active Sessions":
         fig = get_cas_graph(session)
         fig.update_layout(xaxis_title="Time", yaxis_title="CAS")

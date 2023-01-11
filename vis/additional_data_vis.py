@@ -40,7 +40,10 @@ def get_package_combination_table(session: DataSessions):
     """
     data = session.get_package_combination_percentage()
     return dbc.Table.from_dataframe(
-        pd.DataFrame({"Packages": data.package_names, "Usage": data.usage}), id="table"
+        pd.DataFrame(
+            {"Combination": data.package_names, "Usage (%)": data.usage.round(2)}
+        ),
+        id="table",
     )
 
 
