@@ -1,20 +1,22 @@
 * {
     /* Colors */
-    --background-color: #121212;
-    --background-dark-color: #060606;
-    --background-light-color: #181818;
+    --background-color: #181818;
+    --background-dark-color: #121212;
+    --background-light-color: #282828;
 
     --bright-color: #edf0f1;
     --bright-opacity-15-color: rgba(237, 240, 241, 0.15);
     --bright-opacity-45-color: rgba(237, 240, 241, 0.45);
     --bright-opacity-3-color: rgba(237, 240, 241, 0.03);
 
-    --accent-color-1: #43CBFF;
+    --accent-color-1: #FFFFFF;
 
     /* Shadows */
     --default-shadow: black 0px 5px 10px;
     --default-shadow-hover: var(--bright-opacity-45-color) 0px 5px 10px;
 
+    /* Tabs */
+    --tab-height: 35px;
 
     /* Global Attributes */
     box-sizing: border-box;
@@ -23,6 +25,7 @@
 }
 
 header {
+    margin-top: var(--tab-height);
     padding-top: 1%;
     padding-bottom: 1%;
     display: flex;
@@ -37,14 +40,19 @@ body {
 }
 
 .main {
-    width: 100% auto;
-    margin: 0px;
-    padding: 0px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.text {
+    color: var(--accent-color-1);
+    padding: 5px;
 }
 
 .content {
-    margin: 0px;
-    padding: 0px;
+    margin: 0;
+    padding: 0;
     display: grid;
     place-items: center;
     width: 76%;
@@ -64,7 +72,7 @@ body {
 }
 
 .button {
-    width: 200px;
+    width: auto;
     color: var(--accent-color-1);
     text-align: center;
     padding: 9px 25px;
@@ -103,17 +111,16 @@ body {
 }
 
 .info-table {
-    margin: 0px;
+    margin: 0;
 }
 
 .info-table-cell {
     font-size: 14px;
     border: none;
-    color: var(--bright-color)
+    color: var(--accent-color-1)
 }
 
 .graph {
-    color: var(--bright-color);
     background-color: var(--background-dark-color);
     height: 450px;
     width: 36vw;
@@ -134,11 +141,15 @@ body {
     background-color: var(--background-dark-color);
 }
 
-.dropdown {
+.dropdown, .dropdown-small {
     text-align: center;
     padding: 10px;
     width: 36vw;
     min-width: 600px;
+}
+
+.dropdown-small {
+    width: auto;
 }
 
 .table {
@@ -159,25 +170,72 @@ body {
 .progress-div {
     visibility: hidden;
     padding: 5% 10%;
-    background: linear-gradient(110deg, #7367F0, #3D396A);
-    width: 80%;
+    background: var(--background-light-color);
+    width: 70%;
     position: absolute;
     top: 50%;
     left: 50%;
     margin-right: -50%;
     transform: translate(-50%, -50%);
-    border: 2px solid var(--bright-color);
+    border: 1px solid var(--accent-color-1);
     border-radius: 15px;
-    color: var(--bright-color);
+    color: var(--accent-color-1);
 }
 
-/*anders gestalten? */
-.tab {
+.tab-right,
+.tab-left {
     background-color: var(--background-color) !important;
-    color: var(--bright-color) !important;
+    border-color: var(--accent-color-1) !important;
+    color: var(--accent-color-1) !important;
+    padding: 5px 0 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
 }
 
-/* Classes used by Dash */
+.tab-right {
+    border-radius: 0 15px 15px 0;
+}
+
+.tab-left {
+    border-radius: 15px 0 0 15px;
+}
+
+.tab--selected {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+.tab:hover {
+    background-color: var(--bright-opacity-15-color) !important;
+}
+
+.reset_msg {
+    background-color: var(--background-light-color);
+    width: auto;
+    height: auto;
+    position: absolute;
+    font-size: 300px;
+    left: 50%;
+    padding: 10px;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--bright-color);
+    border-radius: 15px;
+    color: var(--accent-color-1);
+    text-align: center;
+    transition: top 0.5s linear;
+    z-index: 10000;
+}
+
+/* Default classes used by Dash */
+.tab-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 999;
+    width: 100%;
+    height: var(--tab-height);
+}
+
 .multi_additional {
     display: flex;
 }
@@ -191,6 +249,9 @@ body {
     border-color: var(--background-dark-color);
 }
 
+.DateRangePickerInput:hover {
+    box-shadow: var(--default-shadow-hover);
+}
 
 .DayPicker__withBorder,
 .DateRangePicker_picker,
@@ -236,10 +297,93 @@ body {
     border-color: var(--background-color);
 }
 
-.Select-control {
-    box-shadow: var(--default-shadow);
+.Select-control:hover {
+    box-shadow: var(--default-shadow-hover);
 }
 
-.Select-control:hover {
+.table {
+    color: var(--accent-color-1);
+    width: auto;
+    height: auto;
+    margin: 5px;
+}
+
+.multi_additional {
+    display: flex;
+}
+
+.table_without_head>thead {
+    display: none;
+}
+
+.table_without_head> :not(:first-child) {
+    border-top: 1px solid var(--bright-color);
+}
+
+.modal-content {
+    color: var(--accent-color-1);
+    background-color: var(--background-color);
+    border-radius: 10px;
+}
+
+.modal-header {
+    place-items: center;
+    border-bottom: none;
+}
+
+.modal-footer {
+    border-top: none;
+}
+
+.btn-close {
+    display: none;
+}
+
+.input {
+    background-color: var(--background-light-color) !important;
+    border-color: var(--background-light-color) !important;
+    color: var(--accent-color-1) !important;
+}
+
+.dash-uploader-default,
+.dash-uploader-padding,
+.dash-uploader-uploading,
+.dash-uploader-complete {
+    display: table-cell;
+    line-height: 0 !important;
+    height: 47px !important;
+    min-height: 20px !important;
+    width: 200px !important;
+    color: var(--accent-color-1);
+    text-align: center !important;
+    vertical-align: middle !important;
+    padding: 0 0 !important;
+    background-color: var(--background-dark-color);
+    border: none !important;
+    border-radius: 50px !important;
+    cursor: pointer;
+    transition: all 0.3s ease 0s !important;
+    box-shadow: var(--default-shadow) !important;
+}
+
+.dash-uploader-hovered {
+    display: table-cell;
+    line-height: 0 !important;
+    height: 47px !important;
+    min-height: 20px !important;
+    width: 200px !important;
+    color: var(--accent-color-1);
+    text-align: center !important;
+    vertical-align: middle !important;
+    padding: 0 0 !important;
+    border: none !important;
+    border-radius: 50px !important;
+    cursor: pointer;
+    transition: all 0.3s ease 0s !important;
+    background-color: var(--background-dark-color);
+    box-shadow: var(--default-shadow-hover)
+}
+
+.dash-uploader-default:hover {
     box-shadow: var(--default-shadow-hover);
 }
