@@ -1,4 +1,4 @@
-dirs := dash vis computation
+dirs := dash vis computation database
 
 quality:
 	black --check --preview $(dirs)

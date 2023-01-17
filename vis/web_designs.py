@@ -1,24 +1,54 @@
 import dash_bootstrap_components as dbc
+import dash_uploader
 
 from dash import dcc, html
 
 
-def header_feature() -> html.Header:
+def header() -> html.Header:
     """
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     html.Header which describes the header of the Feature Usage Tab
     """
 
-    header = html.Header(
+    head = html.Header(
         [
-            html.Div(className="col-2"),
             html.Div(
-                dcc.Upload("Upload Report", id="upload", className="button"),
+                html.Button("Reset", id="reset", className="button"), className="col-2"
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            dash_uploader.Upload(
+                                text="Upload Report",
+                                id="dash-uploader",
+                                filetypes=["csv"],
+                            )
+                        ]
+                    ),
+                    dbc.Modal(
+                        [
+                            dbc.ModalHeader(
+                                dbc.ModalTitle("Please enter a file identifier")
+                            ),
+                            dbc.ModalBody(
+                                dbc.Input(
+                                    id="ident",
+                                    placeholder="identifier",
+                                    type="text",
+                                    debounce=True,
+                                    className="input",
+                                )
+                            ),
+                            dbc.ModalFooter(
+                                html.Button("Confirm", id="confirm", className="button")
+                            ),
+                        ],
+                        id="modal_ident",
+                        is_open=False,
+                    ),
+                ],
                 className="col-2 center",
             ),
             html.Div(
@@ -56,18 +86,19 @@ def header_feature() -> html.Header:
         id="header",
     )
 
-    return header
+    return head
 
 
-dropdown_list = ["Token Consumption", "Concurrent Active Sessions", "Product Usage"]
+dropdown_list = [
+    "Token Consumption",
+    "Concurrent Active Sessions",
+    "Product Usage",
+    "Multi Source",
+]
 
 
 def body_feature():
     """
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     html.Div which represents the html body of the dashboard tab Feature Usage Frontend
@@ -134,6 +165,15 @@ def body_feature():
                     html.Div(  # info content on the right side: file data
                         [
                             dbc.Table(id="file-data-table", className="info-table"),
+                            html.Td(),
+                            html.Div("Select a File:", className="text"),
+                            dcc.Dropdown(
+                                [],
+                                "",
+                                id="file-select",
+                                className="dropdown_small",
+                                clearable=False,
+                            ),
                         ],
                         id="info-column",
                         className="info-column",
@@ -142,9 +182,6 @@ def body_feature():
                 id="main",
                 className="main",
             ),
-            dcc.Store(id="data-store", data=[]),
-            dcc.Store(id="current-data", data=[]),
-            dcc.Store(id="pings", data=[]),
             dcc.Store(id="filename", data=""),
             html.Div(
                 [
@@ -169,65 +206,45 @@ def body_feature():
                 className="progress-div",
                 id="progress_div",
             ),
+            html.Div(
+                html.Div("Database reset completed"),
+                id="reset_msg",
+                className="reset_msg",
+            ),
         ]
     )
 
 
 def tab_layout():
     """
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     html.Div which represents the html body of the complete dashboard Frontend
     """
 
-    return dcc.Tabs(
+    return html.Div(
         [
-            dcc.Tab(
-                label="Feature Usage",
-                children=[header_feature(), body_feature()],
-                className="tab",
-            ),
-            dcc.Tab(
-                label="License Usage",
-                children=[header_license(), body_license()],
-                className="tab",
+            header(),
+            dcc.Tabs(
+                [
+                    dcc.Tab(
+                        label="Feature Usage",
+                        children=[body_feature()],
+                        className="tab-right",
+                    ),
+                    dcc.Tab(
+                        label="License Usage",
+                        children=[body_license()],
+                        className="tab-left",
+                    ),
+                ]
             ),
         ]
     )
-
-
-def header_license() -> html.Header:
-    """
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    html.Div which represents the html header of the dashboard tab License Usage Frontend
-    """
-    header = html.Header(
-        [
-            html.Div(
-                dcc.Upload("Upload Report", id="upload_license", className="button"),
-                className="col-2 center",
-            )
-        ]
-    )
-
-    return header
 
 
 def body_license():
     """
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     html.Div which represents the html body of the dashboard tab License Usage Frontend

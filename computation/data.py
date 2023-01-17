@@ -187,6 +187,8 @@ class DataSessions:
         return daily feature package combinations
     get_cas_statistics()
         return the statistics for the concurrent active sessions
+    get_multiple_identifier_data()
+        return the total token consumption of multiple files of a given interval
     """
 
     def __init__(
@@ -195,6 +197,7 @@ class DataSessions:
         data_pings: DataPings,
         features: pd.DataFrame,
         block_length: int,
+        file_selector: str,
     ):
         """Declare/Initialize variable and extract sessions.
 
@@ -205,6 +208,8 @@ class DataSessions:
         features : pd.Dataframe
         block_length : int
             session period in seconds
+        file_selector : str
+            the identifier of a specific file
         """
         self.data_pings = data_pings
         self.features = features
@@ -214,6 +219,7 @@ class DataSessions:
         self.data_with_token_cost = None
         self.data_cas = None
         self.feature_package_combination = None
+        self.file_selector = file_selector
 
     def extract_session_blocks(self):
         """Create session blocks.
@@ -401,7 +407,7 @@ class DataSessions:
             data = self.data_with_feature_use.copy()
             # map feature usage to feature token cost
             features_in_df = []
-            data = data.reset_index()  # make sure that indices exist correctly
+            data = data.reset_index(drop=True)  # make sure that indices exist correctly
             for index, row in self.features.iterrows():
                 feat_name = row["keyword"]
                 if feat_name in data.columns:
@@ -418,12 +424,10 @@ class DataSessions:
 
         return self.data_with_token_cost
 
-    def get_token_consumption(self, interval: str = "D"):
+    def get_token_consumption(self, interval: str = "D", multi_files: bool = False):
         """
         Return token consumption of given interval.
 
-        Parameters
-        ----------
         interval : str
             length of interval
             for minutes use: "[num of min]min"
@@ -431,6 +435,8 @@ class DataSessions:
             for days use: "[num of days]D"
             full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
 
+        multi_files : bool
+            indicator if files should be grouped by identifier or not
         Returns
         -------
         pd.DataFrame
@@ -452,9 +458,13 @@ class DataSessions:
         feat_names = self.features["keyword"].tolist()
         feat_names.append("total")
         data["block_start"] = pd.to_datetime(data["block_start"])
-        data = data.groupby(pd.Grouper(key="block_start", freq=interval))[
-            feat_names
-        ].sum()
+
+        if multi_files:
+            groupers = [pd.Grouper(key="block_start", freq=interval), "identifier"]
+        else:
+            data = data[data["identifier"] == self.file_selector]
+            groupers = pd.Grouper(key="block_start", freq=interval)
+        data = data.groupby(groupers)[feat_names].sum(numeric_only=True)
         data = data.reset_index()  # make sure that indices exist correctly
 
         data.rename(columns={"block_start": "time"}, inplace=True)
@@ -488,7 +498,9 @@ class DataSessions:
             raise Exception("Method only works with self.block_length == 300")
 
         # remove sessions, that don't include one of the 15min-timestamps
-        s = self.data["block_start"].copy()
+        data = self.data
+        data = data[data["identifier"] == self.file_selector]
+        s = data["block_start"].copy()
         s = s[
             (s.str[14:16].astype("int") % 15 >= 10)
             | (
@@ -504,9 +516,7 @@ class DataSessions:
         data["amount"] = 1
 
         # amount of sessions that are active at 15min-timestamps
-        data = data.groupby(pd.Grouper(key="time", label="right", freq="15min"))[
-            "amount"
-        ].sum()
+        data = data.groupby(pd.Grouper(key="time", freq="15min"))["amount"].sum()
         data = data.reset_index()
 
         # find max num of 15min interval-sessions in given interval
@@ -527,8 +537,13 @@ class DataSessions:
             last date of the new interval
         """
         self.data = self.data[
-            (self.data["block_start"] >= str(first_date))
-            & (self.data["block_end"] <= str(last_date))
+            (self.data["block_start"] >= (str(first_date)[:10] + " 00:00:00"))
+            & (self.data["block_end"] <= (str(last_date)[:10] + " 23:59:59"))
+        ]
+
+        self.data_pings.data = self.data_pings.data[
+            (self.data_pings.data["time"] >= (str(first_date)[:10] + "T00:00:00Z"))
+            & (self.data_pings.data["time"] <= (str(last_date)[:10] + "T23:59:59Z"))
         ]
 
     def get_total_token_amount(self):
@@ -545,6 +560,7 @@ class DataSessions:
         cols = self.features.keyword
         cols = pd.concat([cols, pd.Series(["total"])])
         data = self.data_with_token_cost.copy()
+        data = data[data["identifier"] == self.file_selector]
         data = data[cols].sum()
 
         return data
@@ -566,13 +582,14 @@ class DataSessions:
         for i in range(1, 2 ** len(feat_names)):
             combination = []
             data = self.data_with_feature_use
+            data = data[data["identifier"] == self.file_selector]
             j = 0
             for fn in feat_names:
                 if (2**j & i) > 0:
                     combination.append(fn)
-                    data = data[self.data_with_feature_use[fn] == 1]
+                    data = data[data[fn] == 1]
                 else:
-                    data = data[self.data_with_feature_use[fn] == 0]
+                    data = data[data[fn] == 0]
                 j += 1
             total_rows = len(self.data_with_feature_use.index)
             num_of_combination = len(data.index)
@@ -611,3 +628,41 @@ class DataSessions:
         }
 
         return pd.DataFrame(cas_statistics)
+
+    def get_multiple_identifier_data(self, idents, interval: str = "D"):
+        """
+        Return token consumption of given interval.
+
+        Parameters
+        ----------
+        idents: list or array
+            containing all file identifier
+        interval : str
+            length of interval
+            for minutes use: "[num of min]min"
+            for hours use: "[num of hours]H"
+            for days use: "[num of days]D"
+            full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+
+        Returns
+        -------
+        pd.DataFrame
+            data frame containing total cost per chosen interval for each file identifier
+        """
+        data = self.get_token_consumption(interval, True).copy()
+        dates = pd.DataFrame({"time": self.data_pings.get_sequence_of_days()})
+        dates["time"] = pd.to_datetime(dates["time"])
+        for ident in idents:
+            ident_table = data[data["identifier"] == ident].copy()
+            drops = ["identifier"]
+            drops.extend(self.features["keyword"].tolist())
+            ident_table.drop(
+                drops,
+                axis="columns",
+                inplace=True,
+            )
+            ident_table.rename(columns={"total": ident}, inplace=True)
+            dates = pd.merge(dates, ident_table, on="time", how="outer")
+
+        dates.fillna(0, inplace=True)
+        return dates

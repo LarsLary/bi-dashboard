@@ -29,6 +29,11 @@ before_script:
   - pip install black
   - pip install isort
 
+format_code:
+  stage: build
+  script:
+    - make format
+
 check_code_quality:
   stage: test
   script:

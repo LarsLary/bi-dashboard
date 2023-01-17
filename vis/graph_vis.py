@@ -1,14 +1,11 @@
 import plotly.express as px
+from plotly.graph_objs import Figure
 
 from computation.data import DataSessions
 
 
 def empty_fig():
     """
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     plotly.express figure (px.scatter) which is an empty graph as a placeholder
@@ -22,7 +19,7 @@ def empty_fig():
     return fig
 
 
-def get_token_graph(session: DataSessions):
+def get_token_graph(session: DataSessions) -> Figure:
     """
     Parameters
     ----------
@@ -48,7 +45,7 @@ def get_token_graph(session: DataSessions):
     return fig
 
 
-def get_fpc_graph(session: DataSessions):
+def get_fpc_graph(session: DataSessions) -> Figure:
     """
     Parameters
     ----------
@@ -66,7 +63,7 @@ def get_fpc_graph(session: DataSessions):
     return fig
 
 
-def get_cas_graph(session: DataSessions):
+def get_cas_graph(session: DataSessions) -> Figure:
     """
     Parameters
     ----------
@@ -89,4 +86,31 @@ def get_cas_graph(session: DataSessions):
         render_mode="webgl",
     ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
 
+    return fig
+
+
+def get_multi_files_graph(session: DataSessions, idents) -> Figure:
+    """
+    Parameters
+    ----------
+    session:
+         DataSession
+    idents:
+        list or array containing all identifier
+
+    Returns
+    -------
+    plotly.express
+        figure (px.line) which shows the total token usage for each file identifier
+    """
+    if len(session.data_pings.get_metered_days()) <= 3:
+        data = session.get_multiple_identifier_data(idents, interval="15min")
+    else:
+        data = session.get_multiple_identifier_data(idents)
+    fig = px.line(
+        data,
+        x="time",
+        y=idents,
+        render_mode="webgl",
+    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
     return fig
