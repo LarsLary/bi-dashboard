@@ -239,7 +239,7 @@ def update_output_div(
             driver.df_to_sql_replace(sessions.data, "current_data")
 
             return (
-                get_overview_table(sessions.data_pings),
+                get_overview_table(sessions.data_pings, file_select),
                 dcc.Graph(figure=fig1, className="graph"),
                 dcc.Graph(figure=fig2, className="graph"),
                 additional1,
@@ -286,7 +286,7 @@ def update_output_div(
             )
 
     return (
-        get_overview_table(None),
+        get_overview_table(None, ""),
         dcc.Graph(figure=empty_fig()),
         dcc.Graph(figure=empty_fig()),
         "",
@@ -296,23 +296,29 @@ def update_output_div(
     )
 
 
-def get_overview_table(data_pings: DataPings) -> dash.html.Tbody:
+def get_overview_table(data_pings: DataPings, file_identifier: str) -> dash.html.Tbody:
     """
     Creates a html table that contains some key metrics for given DataPings
 
     Parameters
     ----------
     data_pings : DataPings which represents the selected entry in the dropdown menu with the id 'dropdown1'
+    file_identifier: String which represents the identifier of each file
 
     Returns
     -------
     dash.html.Tbody containing 4 rows: report, lines, calendar days and metered days
     """
     if data_pings is not None:
-        filename = str(data_pings.get_filename())
-        lines = str(len(data_pings.get_pings().index))
-        cal_days = str(len(data_pings.get_sequence_of_days()))
-        metered_days = str(len(data_pings.get_metered_days()))
+        data_pings_new = DataPings(
+            file_identifier,
+            data_pings.data[data_pings.data["identifier"] == file_identifier],
+            data_pings.features,
+        )
+        filename = str(data_pings_new.get_filename())
+        lines = str(len(data_pings_new.get_pings().index))
+        cal_days = str(len(data_pings_new.get_sequence_of_days()))
+        metered_days = str(len(data_pings_new.get_metered_days()))
     else:
         filename = ""
         lines = ""
