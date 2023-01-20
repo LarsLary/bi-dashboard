@@ -241,93 +241,92 @@ class DataSessions:
         block_end_timestamp : dt.datetime
         """
         data = self.data_pings.data.copy()
+
+        # sort data
         data = data.sort_values(by=["cluster_id", "app_instance_id", "time"])
-        data = data.reset_index()  # make sure that indices exist correctly
+        data = data.reset_index(drop=True)  # make sure that indices exist correctly
 
-        time_format = "%Y-%m-%d %H:%M:%S"
+        # convert str to datetime
+        data["time"] = pd.to_datetime(data["time"])
+
+        # for iterating through rows of data
         session_data = []
+        cur = {
+            "cluster_id": None,
+            "app_instance_id": None,
+            "feature_mask": None,
+            "block_start": None,
+            "block_end": None,
+            "last_ping": None,
+        }
 
-        cur_timestamp = None
-        cur_bitmask = None
-        cur_c_id = None
-        cur_a_id = None
-        cur_last_ping = None
+        # iterate through rows of data
+        data.apply(lambda row: self.extract_row(row, session_data, cur), axis="columns")
 
-        # iterate through data frame
-        for index, row in data.iterrows():
-            timestamp = dt.datetime.strptime(row["time"], "%Y-%m-%dT%H:%M:%SZ")
-            bitmask = row["feature_mask"]
-            c_id = row["cluster_id"]
-            a_id = row["app_instance_id"]
-
-            # no open block -> open one
-            if not cur_timestamp:
-                cur_timestamp = timestamp
-                cur_bitmask = bitmask
-                cur_c_id = c_id
-                cur_a_id = a_id
-                cur_last_ping = timestamp
-
-            #    new cluster_id
-            # or same cluster id and new app_instance_id
-            # or timestamp is not in the block
-            # ==> close open block and open new one
-            elif (
-                c_id != cur_c_id
-                or (c_id == cur_c_id and a_id != cur_a_id)
-                or timestamp >= cur_timestamp + dt.timedelta(seconds=self.block_length)
-            ):
-                block_end_timestamp = (
-                    cur_timestamp + dt.timedelta(seconds=self.block_length)
-                ).strftime(time_format)
-                # TODO: Optimize? Better way than append?
-                session_data.append(
-                    [
-                        cur_c_id,
-                        cur_a_id,
-                        cur_bitmask,
-                        cur_timestamp.strftime(time_format),
-                        block_end_timestamp,
-                        cur_last_ping.strftime(time_format),
-                    ]
-                )
-                cur_timestamp = timestamp
-                cur_bitmask = bitmask
-                cur_c_id = c_id
-                cur_a_id = a_id
-                cur_last_ping = timestamp
-            # timestamp is in the block -> bitwise or on bitmask
-            else:
-                cur_bitmask = cur_bitmask | bitmask
-                cur_last_ping = timestamp
         # close last block
-        if cur_timestamp:
-            block_end_timestamp = (
-                cur_timestamp + dt.timedelta(seconds=self.block_length)
-            ).strftime(time_format)
-            # TODO: Optimize? Better way than append?
-            session_data.append(
-                [
-                    cur_c_id,
-                    cur_a_id,
-                    cur_bitmask,
-                    cur_timestamp.strftime(time_format),
-                    block_end_timestamp,
-                    cur_last_ping.strftime(time_format),
-                ]
+        if cur["block_start"]:
+            session_data.append(cur)
+
+        self.data = pd.DataFrame.from_dict(session_data)
+
+        # convert datetime to str
+        string_format = "%Y-%m-%d %H:%M:%S"
+        self.data["block_start"] = self.data["block_start"].dt.strftime(string_format)
+        self.data["block_end"] = self.data["block_end"].dt.strftime(string_format)
+        self.data["last_ping"] = self.data["last_ping"].dt.strftime(string_format)
+
+    def extract_row(self, row, session_data, cur):
+        """Get information from row, open and close session blocks and append session blocks to session_data
+
+        Parameter
+        ---------
+        row: pd.Series
+            row of pd.Dataframe to extract sessions from
+        session_data: list of dict
+            contains already extracted sessions
+        cur: dict
+            contains information of previous rows
+        """
+        timestamp = row["time"]
+        bitmask = row["feature_mask"]
+        c_id = row["cluster_id"]
+        a_id = row["app_instance_id"]
+
+        # no open block -> open one
+        if not cur["block_start"]:
+            cur["block_start"] = timestamp
+            cur["block_end"] = timestamp + dt.timedelta(seconds=self.block_length)
+            cur["feature_mask"] = bitmask
+            cur["cluster_id"] = c_id
+            cur["app_instance_id"] = a_id
+            cur["last_ping"] = timestamp
+            cur["block_end"] = cur["block_start"] + dt.timedelta(
+                seconds=self.block_length
             )
 
-        self.data = pd.DataFrame(
-            session_data,
-            columns=[
-                "cluster_id",
-                "app_instance_id",
-                "feature_mask",
-                "block_start",
-                "block_end",
-                "last_ping",
-            ],
-        )
+        #    new cluster_id
+        # or new app_instance_id
+        # or timestamp is not in the block
+        # ==> close open block and open new one
+        elif (
+            c_id != cur["cluster_id"]
+            or a_id != cur["app_instance_id"]
+            or timestamp >= cur["block_end"]
+        ):
+            session_data.append(cur.copy())
+
+            cur["block_start"] = timestamp
+            cur["feature_mask"] = bitmask
+            cur["cluster_id"] = c_id
+            cur["app_instance_id"] = a_id
+            cur["last_ping"] = timestamp
+            cur["block_end"] = cur["block_start"] + dt.timedelta(
+                seconds=self.block_length
+            )
+        # timestamp is in the block -> bitwise or on bitmask
+        else:
+            cur["feature_mask"] = cur["feature_mask"] | bitmask
+            cur["last_ping"] = timestamp
 
     def get_data_with_feature_use(self):
         """
