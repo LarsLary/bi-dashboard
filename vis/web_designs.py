@@ -183,34 +183,6 @@ def body_feature():
                 className="main",
             ),
             dcc.Store(id="filename", data=""),
-            html.Div(
-                [
-                    html.H1(
-                        "~",
-                        id="progress_bar_header",
-                        className="center",
-                        style={"marginBottom": "3%"},
-                    ),
-                    html.P(
-                        "~",
-                        id="progress_message",
-                        className="info-text",
-                    ),
-                    dbc.Progress(
-                        id="progress_bar",
-                        striped=True,
-                        color="#2817e8",
-                        animated=True,
-                    ),
-                ],
-                className="progress-div",
-                id="progress_div",
-            ),
-            html.Div(
-                html.Div("Database reset completed"),
-                id="reset_msg",
-                className="reset_msg",
-            ),
         ]
     )
 
@@ -239,6 +211,7 @@ def tab_layout():
                     ),
                 ]
             ),
+            pop_up_messages(),
         ]
     )
 
@@ -253,8 +226,49 @@ def body_license():
         [
             dbc.Row(
                 [
-                    dbc.Col(html.Div(id="graph_data3", className="graph_data")),
+                    dbc.Col(html.Div([""], id="graph_data3", className="graph_data")),
                 ]
-            )
+            ),
+            dcc.Store(id="filename_license", data=""),
+        ]
+    )
+
+
+def pop_up_messages():
+    """
+    Returns
+    -------
+    html.Div which represents the html format of the pop up messages
+    """
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.H1(
+                        "~",
+                        id="progress_bar_header",
+                        className="center",
+                        style={"marginBottom": "3%"},
+                    ),
+                    html.P(
+                        "~",
+                        id="progress_message",
+                        className="info-text",
+                    ),
+                    dbc.Progress(
+                        id="progress_bar",
+                        striped=True,
+                        color="#2817e8",
+                        animated=True,
+                    ),
+                ],
+                className="progress-div",
+                id="progress_div",
+            ),
+            html.Div(
+                html.Div("Database reset completed"),
+                id="reset_msg",
+                className="reset_msg",
+            ),
         ]
     )

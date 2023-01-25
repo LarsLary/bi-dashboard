@@ -3,7 +3,7 @@ from typing import List
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-from computation.data import DataSessions
+from computation.data import DataSessions, LicenseUsage
 from dash import html
 
 
@@ -80,3 +80,27 @@ def get_cas_statistics(session: DataSessions):
     data = session.get_cas_statistics()
 
     return dbc.Table.from_dataframe(data, className="table_without_head")
+
+
+def get_license_usage_table(license_data: LicenseUsage):
+    """
+    Gets the data of the license usage
+
+    Parameter
+    ---------
+    license_data:
+        LicenseUsage which represent the data used for the computation
+
+    Returns
+    -------
+     dbc.Table:
+        Table with the number of Cache Generation per Feature and the total number of Cache Generations
+    """
+    data = license_data.get_license_usage_data()
+
+    return dbc.Table.from_dataframe(
+        pd.DataFrame(
+            {"Loader": data.feature_name, "Cache Generations": data.resource_id}
+        ),
+        id="table_license",
+    )
