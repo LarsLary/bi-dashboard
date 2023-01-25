@@ -12,12 +12,13 @@ import diskcache
 import pandas as pd
 
 import database.driver as driver
-from computation.data import DataPings, DataSessions
+from computation.data import DataPings, DataSessions, LicenseUsage
 from computation.features import Features
 from dash import Dash, Input, Output, State, ctx, dash, dcc
 from dash.long_callback import DiskcacheLongCallbackManager
 from vis.additional_data_vis import (
     get_cas_statistics,
+    get_license_usage_table,
     get_package_combination_table,
     get_total_amount_table,
 )
@@ -151,6 +152,32 @@ def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
         data = data[0].split("-")
         data = date(int(data[0]), int(data[1]), int(data[2]))
     return data
+
+
+@app.callback(
+    Output(component_id="graph_data3", component_property="children"),
+    Input("filename_license", "data"),
+    prevent_inital_call=True,
+)
+def update_output_license(filename: str):
+    """
+    Parameters
+    ----------
+    filename: String
+
+    main computation of the frontend
+
+    Returns
+    -------
+    dcc.Graph which represents the graph with the id 'graph3'
+    """
+    if driver.check_if_table_exists("license"):
+        license_data = driver.get_df_from_db("license")
+        license_usage = LicenseUsage(license_data)
+        additional = get_license_usage_table(license_usage)
+        return additional
+    else:
+        return dash.no_update
 
 
 @app.callback(
@@ -360,6 +387,7 @@ def get_overview_table(data_pings: DataPings, file_identifier: str) -> dash.html
         Output("confirm", "n_clicks"),
         Output("dash-uploader", "isCompleted"),
         Output("filename", "data"),
+        Output("filename_license", "data"),
     ],
     inputs=[
         Input("dash-uploader", "isCompleted"),
@@ -434,7 +462,8 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
         if "grant_id" in datagram.columns:
             driver.df_to_sql_append(datagram, "license")
             set_progress((100, "5/5", header_text, "Loaded Data Successfully", False))
-            return None, False, filename
+            sleep(1)
+            return None, False, dash.no_update, filename
 
         set_progress((40, "2/5", header_text, "Extracting DataPings", False))
         sleep(1)
@@ -466,8 +495,8 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
         driver.drop_current_table()
         set_progress((100, "5/5", header_text, "Loaded Data Successfully", False))
 
-        return None, False, filename
-    return None, False, ""
+        return None, False, filename, dash.no_update
+    return None, False, "", dash.no_update
 
 
 @app.callback(
@@ -554,10 +583,9 @@ def data_name_input(name):
     Output("file-select", "options"),
     Output("file-select", "value"),
     Input("filename", "data"),
-    Input("file-select", "value"),
     prevent_inital_call=True,
 )
-def set_file_select(filename: str, value):
+def set_file_select(filename: str):
     idents = []
     if driver.check_if_table_exists("identifier"):
         idents = driver.get_df_from_db("identifier").to_numpy(dtype=str).flatten()

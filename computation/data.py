@@ -665,3 +665,50 @@ class DataSessions:
 
         dates.fillna(0, inplace=True)
         return dates
+
+
+class LicenseUsage:
+    def __init__(
+        self,
+        data: pd.DataFrame,
+    ):
+        """Dataframe of the License Usage
+
+        Parameters
+        ----------
+        data : pd.Dataframe
+
+        Methods
+        -------
+        get_license_usage_data
+            Return the number of cache generations of a feature.
+        """
+        self.data = data
+
+    def get_license_usage_data(self):
+        """
+        Return the number of cache generations of a feature.
+
+        Returns
+        -------
+        pd.DataFrame
+            data frame containing the number of caches generation of a feature and the total number
+            of cache generations
+        """
+
+        license_df = self.data
+        result = (
+            license_df[["resource_id", "feature_name"]]
+            .drop_duplicates(subset="resource_id")
+            .groupby("feature_name")
+            .count()
+            .reset_index()
+            .sort_values(by=["resource_id"], ascending=False)
+        )
+        result["feature_name"] = (result["feature_name"].str.rsplit("/", 1)).str[-1]
+        total_row = pd.Series(
+            {"feature_name": "Total", "resource_id": result["resource_id"].sum()}
+        )
+        result = pd.concat([result, total_row.to_frame().T], ignore_index=True)
+
+        return result

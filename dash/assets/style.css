@@ -122,9 +122,8 @@ body {
 
 .graph {
     background-color: var(--background-dark-color);
-    height: 450px;
+    height: 23vw;
     width: 36vw;
-    min-width: 600px;
     border-radius: 15px;
 }
 
@@ -134,9 +133,8 @@ body {
     padding: 10px;
     color: var(--bright-color);
     width: 36vw;
-    min-width: 600px;
     height: auto;
-    min-height: 300px;
+    min-height: 15vw;
     border-radius: 15px;
     background-color: var(--background-dark-color);
 }
@@ -145,7 +143,6 @@ body {
     text-align: center;
     padding: 10px;
     width: 36vw;
-    min-width: 600px;
 }
 
 .dropdown-small {
@@ -214,7 +211,7 @@ body {
     width: auto;
     height: auto;
     position: absolute;
-    font-size: 300px;
+    font-size: 15vw;
     left: 50%;
     padding: 10px;
     transform: translate(-50%, -50%);
@@ -227,6 +224,11 @@ body {
 }
 
 /* Default classes used by Dash */
+.dash-graph{
+    width: 36vw;
+    height: 23vw;
+}
+
 .tab-container {
     position: fixed;
     top: 0;
@@ -290,7 +292,7 @@ body {
 }
 
 .Select-menu-outer {
-    width: 680px;
+    width: 35vw;
     color: var(--accent-color-1);
     background-color: var(--background-dark-color);
     border-radius: 10px;
@@ -351,9 +353,9 @@ body {
 .dash-uploader-complete {
     display: table-cell;
     line-height: 0 !important;
-    height: 47px !important;
+    height: 2.5vw !important;
     min-height: 20px !important;
-    width: 200px !important;
+    width: 10.4vw !important;
     color: var(--accent-color-1);
     text-align: center !important;
     vertical-align: middle !important;
@@ -369,9 +371,9 @@ body {
 .dash-uploader-hovered {
     display: table-cell;
     line-height: 0 !important;
-    height: 47px !important;
+    height: 2.5vw !important;
     min-height: 20px !important;
-    width: 200px !important;
+    width: 10.4vw !important;
     color: var(--accent-color-1);
     text-align: center !important;
     vertical-align: middle !important;
