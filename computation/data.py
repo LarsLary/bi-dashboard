@@ -40,7 +40,13 @@ class DataPings:
         return day_sequence_of_timespan
     """
 
-    def __init__(self, filename: str, data: pd.DataFrame, features: pd.DataFrame):
+    def __init__(
+        self,
+        filename: str,
+        data: pd.DataFrame,
+        features: pd.DataFrame,
+        cluster_id: str = None,
+    ):
         """Declare/Initialize variables and filter pings.
 
         Parameters
@@ -48,8 +54,15 @@ class DataPings:
         filename: str
         data : np.DataFrame
         features : np.DataFrame
+        cluster_id: str
+            cluster_id that doesn't get filtered out
         """
-        self.data = data
+        self.data_with_all_c_ids = data
+        self.data = self.data_with_all_c_ids
+        if cluster_id is not None:
+            self.data = self.data_with_all_c_ids[
+                self.data_with_all_c_ids["cluster_id"] == cluster_id
+            ]
         self.features = features
         self.metered_days = None
         self.day_sequence_of_timespan = None
@@ -140,6 +153,21 @@ class DataPings:
             ]
         return self.day_sequence_of_timespan
 
+    def get_sequence_of_days_for_all_cluster_ids(self) -> list:
+        """Return a sequence of dates independent of selected cluster_id.
+
+        Returns
+        -------
+        list of pd.Timestamp
+            a sequence of dates independent of selected cluster_id
+        """
+        data = self.data_with_all_c_ids.copy()
+        data = data["time"]
+        data = pd.to_datetime(data)
+        first_day = data.min().date()
+        last_day = data.max().date()
+        return pd.date_range(first_day, last_day).tolist()
+
 
 class DataSessions:
     """Data frames of sessions.
@@ -187,7 +215,7 @@ class DataSessions:
         return daily feature package combinations
     get_cas_statistics()
         return the statistics for the concurrent active sessions
-    get_multiple_identifier_data()
+    get_selector_comparison_data()
         return the total token consumption of multiple files of a given interval
     """
 
@@ -198,6 +226,7 @@ class DataSessions:
         features: pd.DataFrame,
         block_length: int,
         file_selector: str,
+        cluster_id_selector: str = None,
     ):
         """Declare/Initialize variable and extract sessions.
 
@@ -210,6 +239,8 @@ class DataSessions:
             session period in seconds
         file_selector : str
             the identifier of a specific file
+        cluster_id_selector : str
+            cluster_id that is selected
         """
         self.data_pings = data_pings
         self.features = features
@@ -220,6 +251,7 @@ class DataSessions:
         self.data_cas = None
         self.feature_package_combination = None
         self.file_selector = file_selector
+        self.cluster_id_selector = cluster_id_selector
 
     def extract_session_blocks(self):
         """Create session blocks.
@@ -423,7 +455,12 @@ class DataSessions:
 
         return self.data_with_token_cost
 
-    def get_token_consumption(self, interval: str = "D", multi_files: bool = False):
+    def get_token_consumption(
+        self,
+        interval: str = "D",
+        multi_files: bool = False,
+        cluster_id_comparison: bool = False,
+    ):
         """
         Return token consumption of given interval.
 
@@ -436,6 +473,8 @@ class DataSessions:
 
         multi_files : bool
             indicator if files should be grouped by identifier or not
+        cluster_id_comparison : bool
+            indicator if files should be grouped by cluster_ids or not
         Returns
         -------
         pd.DataFrame
@@ -446,7 +485,6 @@ class DataSessions:
         data = self.data_with_token_cost.copy()
         data = data.drop(
             [
-                "cluster_id",
                 "app_instance_id",
                 "feature_mask",
                 "block_end",
@@ -460,8 +498,13 @@ class DataSessions:
 
         if multi_files:
             groupers = [pd.Grouper(key="block_start", freq=interval), "identifier"]
+        elif cluster_id_comparison:
+            data = data[data["identifier"] == self.file_selector]
+            groupers = [pd.Grouper(key="block_start", freq=interval), "cluster_id"]
         else:
             data = data[data["identifier"] == self.file_selector]
+            if self.cluster_id_selector is not None:
+                data = data[data["cluster_id"] == self.cluster_id_selector]
             groupers = pd.Grouper(key="block_start", freq=interval)
         data = data.groupby(groupers)[feat_names].sum(numeric_only=True)
         data = data.reset_index()  # make sure that indices exist correctly
@@ -499,6 +542,8 @@ class DataSessions:
         # remove sessions, that don't include one of the 15min-timestamps
         data = self.data
         data = data[data["identifier"] == self.file_selector]
+        if self.cluster_id_selector is not None:
+            data = data[data["cluster_id"] == self.cluster_id_selector]
         s = data["block_start"].copy()
         s = s[
             (s.str[14:16].astype("int") % 15 >= 10)
@@ -560,6 +605,8 @@ class DataSessions:
         cols = pd.concat([cols, pd.Series(["total"])])
         data = self.data_with_token_cost.copy()
         data = data[data["identifier"] == self.file_selector]
+        if self.cluster_id_selector is not None:
+            data = data[data["cluster_id"] == self.cluster_id_selector]
         data = data[cols].sum()
 
         return data
@@ -582,6 +629,8 @@ class DataSessions:
             combination = []
             data = self.data_with_feature_use
             data = data[data["identifier"] == self.file_selector]
+            if self.cluster_id_selector is not None:
+                data = data[data["cluster_id"] == self.cluster_id_selector]
             j = 0
             for fn in feat_names:
                 if (2**j & i) > 0:
@@ -628,14 +677,17 @@ class DataSessions:
 
         return pd.DataFrame(cas_statistics)
 
-    def get_multiple_identifier_data(self, idents, interval: str = "D"):
-        """
-        Return token consumption of given interval.
+    def get_selector_comparison_data(
+        self, group_by: list, group_in: str, interval: str = "D"
+    ):
+        """Return total token consumption for comparison
 
         Parameters
         ----------
-        idents: list or array
-            containing all file identifier
+        group_by : list of str
+            containing names, which to group by
+        group_in : str
+            containing name of row in which groups will be created (possible: identifier, cluster_id)
         interval : str
             length of interval
             for minutes use: "[num of min]min"
@@ -646,25 +698,50 @@ class DataSessions:
         Returns
         -------
         pd.DataFrame
-            data frame containing total cost per chosen interval for each file identifier
+            data frame containing total cost per chosen interval for chosen groups
+
+        Raises
+        ------
+        Exception
+            If group_in is not ("identifier" or "cluster_id")
         """
-        data = self.get_token_consumption(interval, True).copy()
-        dates = pd.DataFrame({"time": self.data_pings.get_sequence_of_days()})
+        if group_in == "identifier":
+            data = self.get_token_consumption(interval, multi_files=True).copy()
+        elif group_in == "cluster_id":
+            data = self.get_token_consumption(
+                interval, cluster_id_comparison=True
+            ).copy()
+        else:
+            raise Exception("Method has not been implemented for group_in=", group_in)
+        dates = pd.DataFrame(
+            {"time": self.data_pings.get_sequence_of_days_for_all_cluster_ids()}
+        )
         dates["time"] = pd.to_datetime(dates["time"])
-        for ident in idents:
-            ident_table = data[data["identifier"] == ident].copy()
-            drops = ["identifier"]
+        for x in group_by:
+            table = data[data[group_in] == x].copy()
+            drops = [group_in]
             drops.extend(self.features["keyword"].tolist())
-            ident_table.drop(
+            table.drop(
                 drops,
                 axis="columns",
                 inplace=True,
             )
-            ident_table.rename(columns={"total": ident}, inplace=True)
-            dates = pd.merge(dates, ident_table, on="time", how="outer")
+            table.rename(columns={"total": x}, inplace=True)
+            dates = pd.merge(dates, table, on="time", how="outer")
 
         dates.fillna(0, inplace=True)
         return dates
+
+    def get_cluster_ids(self):
+        """Returns list of cluster_ids that appear in sessions.
+
+        Returns
+        -------
+        list of str
+            list of cluster_ids that appear in sessions
+        """
+        c_ids = self.data["cluster_id"].copy()
+        return c_ids.drop_duplicates()
 
 
 class LicenseUsage:
