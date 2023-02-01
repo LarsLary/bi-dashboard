@@ -93,7 +93,8 @@ dropdown_list = [
     "Token Consumption",
     "Concurrent Active Sessions",
     "Product Usage",
-    "Multi Source",
+    "Cluster-ID Comparison",
+    "File Comparison",
 ]
 
 
@@ -171,6 +172,14 @@ def body_feature():
                                 [],
                                 "",
                                 id="file-select",
+                                className="dropdown_small",
+                                clearable=False,
+                            ),
+                            html.Div("Select a Cluster-ID:", className="text"),
+                            dcc.Dropdown(
+                                [],
+                                "",
+                                id="cluster_id-select",
                                 className="dropdown_small",
                                 clearable=False,
                             ),

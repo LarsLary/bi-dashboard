@@ -89,7 +89,23 @@ def get_cas_graph(session: DataSessions) -> Figure:
     return fig
 
 
-def get_multi_files_graph(session: DataSessions, idents) -> Figure:
+def get_cluster_id_comparison_graph(session: DataSessions, cluster_ids: list):
+    if len(session.data_pings.get_metered_days()) <= 3:
+        data = session.get_selector_comparison_data(
+            cluster_ids, "cluster_id", interval="15min"
+        )
+    else:
+        data = session.get_selector_comparison_data(cluster_ids, "cluster_id")
+    fig = px.line(
+        data,
+        x="time",
+        y=cluster_ids,
+        render_mode="webgl",
+    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    return fig
+
+
+def get_multi_files_graph(session: DataSessions, idents: list) -> Figure:
     """
     Parameters
     ----------
@@ -104,9 +120,11 @@ def get_multi_files_graph(session: DataSessions, idents) -> Figure:
         figure (px.line) which shows the total token usage for each file identifier
     """
     if len(session.data_pings.get_metered_days()) <= 3:
-        data = session.get_multiple_identifier_data(idents, interval="15min")
+        data = session.get_selector_comparison_data(
+            idents, "identifier", interval="15min"
+        )
     else:
-        data = session.get_multiple_identifier_data(idents)
+        data = session.get_selector_comparison_data(idents, "identifier")
     fig = px.line(
         data,
         x="time",

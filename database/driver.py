@@ -74,6 +74,7 @@ def drop_all() -> None:
     cursor.execute("drop table if exists session")
     cursor.execute("drop table if exists license")
     cursor.execute("drop table if exists identifier")
+    cursor.execute("drop table if exists cluster_ids")
 
     close_con()
 

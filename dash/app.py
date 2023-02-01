@@ -25,6 +25,7 @@ from vis.additional_data_vis import (
 from vis.graph_vis import (
     empty_fig,
     get_cas_graph,
+    get_cluster_id_comparison_graph,
     get_fpc_graph,
     get_multi_files_graph,
     get_token_graph,
@@ -64,12 +65,13 @@ def convert_report_to_df(name: str):
     return pd.read_csv(UPLOAD_CACHE_PATH + "/" + name)
 
 
-def select_graph(menu_entry: str, session: DataSessions):
+def select_graph(menu_entry: str, session: DataSessions, identifier: str):
     """
     Parameters
     ----------
     menu_entry : String which defines the selected graph
     session : pd.Dataframe which represents the datapoints used for the selected graph
+    identifier : str which represents the identifier of the currently chosen file
 
     Returns
     -------
@@ -94,7 +96,15 @@ def select_graph(menu_entry: str, session: DataSessions):
         fig = get_cas_graph(session)
         fig.update_layout(xaxis_title="Time", yaxis_title="CAS")
         additional = get_cas_statistics(session)
-    elif menu_entry == "Multi Source":
+    elif menu_entry == "Cluster-ID Comparison":
+        c_ids = driver.get_df_from_db("cluster_ids")
+        c_ids = c_ids[c_ids["identifier"] == identifier]
+        c_ids = c_ids["cluster_id"].to_numpy().tolist()
+        fig = get_cluster_id_comparison_graph(session, c_ids)
+        fig.update_layout(
+            xaxis_title="Time", yaxis_title="Token", legend_title="Idents"
+        )
+    elif menu_entry == "File Comparison":
         idents = driver.get_df_from_db("identifier").to_numpy(dtype=str).flatten()
         fig = get_multi_files_graph(session, idents)
         fig.update_layout(
@@ -194,6 +204,7 @@ def update_output_license(filename: str):
     Input("select-date", "end_date"),
     Input("filename", "data"),
     Input("file-select", "value"),
+    Input("cluster_id-select", "value"),
     prevent_inital_call=True,
 )
 def update_output_div(
@@ -203,6 +214,7 @@ def update_output_div(
     end_date: str,
     filename: str,
     file_select: str,
+    c_id_select: str,
 ):
     """
     Parameters
@@ -214,7 +226,8 @@ def update_output_div(
     end_date : String which represents the selected entry of the ending day in the calendar tool
                     with the id 'select-date'
     filename : str
-    file_select: String
+    file_select: str
+    c_id_select: str
 
     main computation of the frontend
 
@@ -239,13 +252,22 @@ def update_output_div(
             (not driver.check_if_table_exists("current_data"))
             or ctx.triggered_id == "select-date"
             or ctx.triggered_id == "file-select"
+            or ctx.triggered_id == "cluster_id-select"
         ):
             """converting the dict containing all data back into a pd.Dataframe"""
             sql_session = driver.get_df_from_db("session")
 
             """converting Strings representing date into data.Date dates"""
-            data_pings = DataPings(filename, driver.get_df_from_db("pings"), features)
-            sessions = DataSessions(sql_session, data_pings, features, 300, file_select)
+            if c_id_select == "All Cluster-IDs":
+                c_id = None
+            else:
+                c_id = c_id_select
+            data_pings = DataPings(
+                filename, driver.get_df_from_db("pings"), features, c_id
+            )
+            sessions = DataSessions(
+                sql_session, data_pings, features, 300, file_select, c_id
+            )
 
             """checking if new data is loaded and new initial dates should be set"""
             new_data = False
@@ -260,13 +282,13 @@ def update_output_div(
             sessions.crop_data(first, last)
 
             """creating the both graphs based on the chosen entry in the dropdown menu"""
-            fig1, additional1 = select_graph(drop1, sessions)
-            fig2, additional2 = select_graph(drop2, sessions)
+            fig1, additional1 = select_graph(drop1, sessions, file_select)
+            fig2, additional2 = select_graph(drop2, sessions, file_select)
 
             driver.df_to_sql_replace(sessions.data, "current_data")
 
             return (
-                get_overview_table(sessions.data_pings, file_select),
+                get_overview_table(sessions.data_pings, file_select, c_id),
                 dcc.Graph(figure=fig1, className="graph"),
                 dcc.Graph(figure=fig2, className="graph"),
                 additional1,
@@ -278,14 +300,19 @@ def update_output_div(
         """converting the dict containing all data back into a pd.Dataframe"""
         df_current = driver.get_df_from_db("current_data")
 
-        data_pings = DataPings(filename, driver.get_df_from_db("pings"), features)
-
-        sessions = DataSessions(df_current, data_pings, features, 300, file_select)
+        if c_id_select == "All Cluster-IDs":
+            c_id = None
+        else:
+            c_id = c_id_select
+        data_pings = DataPings(filename, driver.get_df_from_db("pings"), features, c_id)
+        sessions = DataSessions(
+            df_current, data_pings, features, 300, file_select, c_id
+        )
 
         """computation if a different representation of graph1 is selected"""
         if ctx.triggered_id == "dropdown1":
             """creating graph1 based on the chosen entry in the dropdown menu"""
-            fig1, additional1 = select_graph(drop1, sessions)
+            fig1, additional1 = select_graph(drop1, sessions, file_select)
 
             return (
                 dash.no_update,
@@ -300,7 +327,7 @@ def update_output_div(
         """computation if a different representation of graph2 is selected"""
         if ctx.triggered_id == "dropdown2":
             """creating graph2 based on the chosen entry in the dropdown menu"""
-            fig2, additional2 = select_graph(drop2, sessions)
+            fig2, additional2 = select_graph(drop2, sessions, file_select)
 
             return (
                 dash.no_update,
@@ -313,7 +340,7 @@ def update_output_div(
             )
 
     return (
-        get_overview_table(None, ""),
+        get_overview_table(None, "", None),
         dcc.Graph(figure=empty_fig()),
         dcc.Graph(figure=empty_fig()),
         "",
@@ -323,7 +350,9 @@ def update_output_div(
     )
 
 
-def get_overview_table(data_pings: DataPings, file_identifier: str) -> dash.html.Tbody:
+def get_overview_table(
+    data_pings: DataPings, file_identifier: str, cluster_id: str
+) -> dash.html.Tbody:
     """
     Creates a html table that contains some key metrics for given DataPings
 
@@ -331,6 +360,7 @@ def get_overview_table(data_pings: DataPings, file_identifier: str) -> dash.html
     ----------
     data_pings : DataPings which represents the selected entry in the dropdown menu with the id 'dropdown1'
     file_identifier: String which represents the identifier of each file
+    cluster_id: String which represents the cluster_id that is selected
 
     Returns
     -------
@@ -341,6 +371,7 @@ def get_overview_table(data_pings: DataPings, file_identifier: str) -> dash.html
             file_identifier,
             data_pings.data[data_pings.data["identifier"] == file_identifier],
             data_pings.features,
+            cluster_id,
         )
         filename = str(data_pings_new.get_filename())
         lines = str(len(data_pings_new.get_pings().index))
@@ -492,6 +523,11 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
         driver.df_to_sql_append(df_pings, "pings")
         driver.filter_duplicates("pings")
 
+        cluster_ids = data_session.get_cluster_ids()
+        cluster_ids = cluster_ids.to_frame()
+        cluster_ids["identifier"] = ident
+        driver.df_to_sql_append(cluster_ids, "cluster_ids")
+
         driver.drop_current_table()
         set_progress((100, "5/5", header_text, "Loaded Data Successfully", False))
 
@@ -582,16 +618,48 @@ def data_name_input(name):
 @app.callback(
     Output("file-select", "options"),
     Output("file-select", "value"),
+    Output("cluster_id-select", "options"),
+    Output("cluster_id-select", "value"),
     Input("filename", "data"),
+    Input("file-select", "value"),
     prevent_inital_call=True,
 )
-def set_file_select(filename: str):
+def set_select_options(filename: str, file_select_value: str):
+    """
+    Update both select menus when uploading new files and update cluster_id select menu when another file is selected
+
+    Parameter
+    ---------
+    filename : str
+    file_select_value : str
+
+    Returns
+    -------
+    list of str
+        select option for file select
+    str
+        current selected file
+    list of str
+        select option for cluster_id select
+    str
+        current selected cluster_id
+    """
     idents = []
+    c_ids = []
+    cur_c_id = dash.no_update
     if driver.check_if_table_exists("identifier"):
         idents = driver.get_df_from_db("identifier").to_numpy(dtype=str).flatten()
+        cur_c_id = "All Cluster-IDs"
+        c_ids = driver.get_df_from_db("cluster_ids")
         if ctx.triggered_id == "filename":
-            return idents, idents[len(idents) - 1]
-    return idents, dash.no_update
+            c_ids = c_ids[c_ids["identifier"] == idents[-1]]
+        else:
+            c_ids = c_ids[c_ids["identifier"] == file_select_value]
+        c_ids = c_ids["cluster_id"].to_numpy().tolist()
+        c_ids = ["All Cluster-IDs"] + c_ids
+        if ctx.triggered_id == "filename":
+            return idents, idents[-1], c_ids, cur_c_id
+    return idents, dash.no_update, c_ids, cur_c_id
 
 
 def open_browser(port: int):
