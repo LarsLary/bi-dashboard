@@ -19,12 +19,12 @@ def empty_fig():
     return fig
 
 
-def get_token_graph(session: DataSessions) -> Figure:
+def get_token_graph(session: DataSessions, graph_type: str) -> Figure:
     """
     Parameters
     ----------
-    session:
-         DataSession
+    session: DataSession
+    graph_type: either "bar" or "line"
 
     Returns
     -------
@@ -35,12 +35,22 @@ def get_token_graph(session: DataSessions) -> Figure:
         data = session.get_token_consumption(interval="15min")
     else:
         data = session.get_token_consumption()
-    fig = px.line(
-        data,
-        x="time",
-        y=["Viewing", "DMU", "Collaboration", "total"],
-        render_mode="webgl",
-    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+
+    if graph_type == "bar":
+        fig = px.bar(
+            data,
+            x="time",
+            y=["Viewing", "DMU", "Collaboration", "total"],
+        )
+    else:
+        fig = px.line(
+            data,
+            x="time",
+            y=["Viewing", "DMU", "Collaboration", "total"],
+            render_mode="webgl",
+        )
+
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)")
 
     return fig
 
@@ -63,12 +73,12 @@ def get_fpc_graph(session: DataSessions) -> Figure:
     return fig
 
 
-def get_cas_graph(session: DataSessions) -> Figure:
+def get_cas_graph(session: DataSessions, graph_type: str) -> Figure:
     """
     Parameters
     ----------
-    session:
-         DataSession
+    session: DataSession
+    graph_type: either "bar" or "line"
 
     Returns
     -------
@@ -79,12 +89,22 @@ def get_cas_graph(session: DataSessions) -> Figure:
         data = session.get_cas(interval="15min")
     else:
         data = session.get_cas()
-    fig = px.line(
-        data,
-        x="time",
-        y="amount",
-        render_mode="webgl",
-    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+
+    if graph_type == "bar":
+        fig = px.bar(
+            data,
+            x="time",
+            y="amount",
+        )
+    else:
+        fig = px.line(
+            data,
+            x="time",
+            y="amount",
+            render_mode="webgl",
+        )
+
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)")
 
     return fig
 
@@ -105,14 +125,15 @@ def get_cluster_id_comparison_graph(session: DataSessions, cluster_ids: list):
     return fig
 
 
-def get_multi_files_graph(session: DataSessions, idents: list) -> Figure:
+def get_multi_files_graph(
+    session: DataSessions, idents: list, graph_type: str
+) -> Figure:
     """
     Parameters
     ----------
-    session:
-         DataSession
-    idents:
-        list or array containing all identifier
+    session: DataSession
+    idents: list or array containing all identifier
+    graph_type: either "bar" or "line"
 
     Returns
     -------
@@ -125,10 +146,21 @@ def get_multi_files_graph(session: DataSessions, idents: list) -> Figure:
         )
     else:
         data = session.get_selector_comparison_data(idents, "identifier")
-    fig = px.line(
-        data,
-        x="time",
-        y=idents,
-        render_mode="webgl",
-    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+
+    if graph_type == "bar":
+        fig = px.bar(
+            data,
+            x="time",
+            y=idents,
+        )
+    else:
+        fig = px.line(
+            data,
+            x="time",
+            y=idents,
+            render_mode="webgl",
+        )
+
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)")
+
     return fig
