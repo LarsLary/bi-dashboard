@@ -65,13 +65,16 @@ def convert_report_to_df(name: str):
     return pd.read_csv(UPLOAD_CACHE_PATH + "/" + name)
 
 
-def select_graph(menu_entry: str, session: DataSessions, identifier: str):
+def select_graph(
+    menu_entry: str, session: DataSessions, identifier: str, graph_type: str
+):
     """
     Parameters
     ----------
     menu_entry : String which defines the selected graph
     session : pd.Dataframe which represents the datapoints used for the selected graph
     identifier : str which represents the identifier of the currently chosen file
+    graph_type: either "bar" or "line"
 
     Returns
     -------
@@ -81,19 +84,21 @@ def select_graph(menu_entry: str, session: DataSessions, identifier: str):
     fig = empty_fig()
     additional = ""
     if menu_entry == "Token Consumption":
-        fig = get_token_graph(session)
+        fig = get_token_graph(session, graph_type=graph_type)
         additional = get_total_amount_table(session)
         fig.update_layout(
             xaxis_title="Time",
             yaxis_title="Token",
             legend_title="Products",
         )
+
     elif menu_entry == "Product Usage":
         fig = get_fpc_graph(session)
         fig.update_layout(xaxis_title="Products", yaxis_title="Usage (%)")
         additional = get_package_combination_table(session)
+
     elif menu_entry == "Concurrent Active Sessions":
-        fig = get_cas_graph(session)
+        fig = get_cas_graph(session, graph_type=graph_type)
         fig.update_layout(xaxis_title="Time", yaxis_title="CAS")
         additional = get_cas_statistics(session)
     elif menu_entry == "Cluster-ID Comparison":
@@ -106,7 +111,7 @@ def select_graph(menu_entry: str, session: DataSessions, identifier: str):
         )
     elif menu_entry == "File Comparison":
         idents = driver.get_df_from_db("identifier").to_numpy(dtype=str).flatten()
-        fig = get_multi_files_graph(session, idents)
+        fig = get_multi_files_graph(session, idents, graph_type=graph_type)
         fig.update_layout(
             xaxis_title="Time", yaxis_title="Token", legend_title="Idents"
         )
@@ -203,6 +208,7 @@ def update_output_license(filename: str):
     Input("select-date", "start_date"),
     Input("select-date", "end_date"),
     Input("filename", "data"),
+    Input(component_id="graph-type", component_property="value"),
     Input("file-select", "value"),
     Input("cluster_id-select", "value"),
     prevent_inital_call=True,
@@ -213,6 +219,7 @@ def update_output_div(
     start_date: str,
     end_date: str,
     filename: str,
+    graph_type: str,
     file_select: str,
     c_id_select: str,
 ):
@@ -226,8 +233,9 @@ def update_output_div(
     end_date : String which represents the selected entry of the ending day in the calendar tool
                     with the id 'select-date'
     filename : str
-    file_select: str
-    c_id_select: str
+    graph_type : String, either "bar", "line" or "auto"
+    file_select: String
+    c_id_select: String
 
     main computation of the frontend
 
@@ -253,6 +261,7 @@ def update_output_div(
             or ctx.triggered_id == "select-date"
             or ctx.triggered_id == "file-select"
             or ctx.triggered_id == "cluster_id-select"
+            or ctx.triggered_id == "graph-type"
         ):
             """converting the dict containing all data back into a pd.Dataframe"""
             sql_session = driver.get_df_from_db("session")
@@ -282,8 +291,13 @@ def update_output_div(
             sessions.crop_data(first, last)
 
             """creating the both graphs based on the chosen entry in the dropdown menu"""
-            fig1, additional1 = select_graph(drop1, sessions, file_select)
-            fig2, additional2 = select_graph(drop2, sessions, file_select)
+            if graph_type == "automatic":
+                graph_type = (
+                    "bar" if (len(data_pings.get_metered_days()) <= 2) else "line"
+                )
+
+            fig1, additional1 = select_graph(drop1, sessions, file_select, graph_type)
+            fig2, additional2 = select_graph(drop2, sessions, file_select, graph_type)
 
             driver.df_to_sql_replace(sessions.data, "current_data")
 
@@ -312,7 +326,7 @@ def update_output_div(
         """computation if a different representation of graph1 is selected"""
         if ctx.triggered_id == "dropdown1":
             """creating graph1 based on the chosen entry in the dropdown menu"""
-            fig1, additional1 = select_graph(drop1, sessions, file_select)
+            fig1, additional1 = select_graph(drop1, sessions, file_select, graph_type)
 
             return (
                 dash.no_update,
@@ -327,7 +341,7 @@ def update_output_div(
         """computation if a different representation of graph2 is selected"""
         if ctx.triggered_id == "dropdown2":
             """creating graph2 based on the chosen entry in the dropdown menu"""
-            fig2, additional2 = select_graph(drop2, sessions, file_select)
+            fig2, additional2 = select_graph(drop2, sessions, file_select, graph_type)
 
             return (
                 dash.no_update,
@@ -660,6 +674,39 @@ def set_select_options(filename: str, file_select_value: str):
         if ctx.triggered_id == "filename":
             return idents, idents[-1], c_ids, cur_c_id
     return idents, dash.no_update, c_ids, cur_c_id
+
+
+@app.callback(
+    Output("settings-div", "style"),
+    Output("header", "style"),
+    Output("main", "style"),
+    Output("tabs", "style"),
+    Output("tab1", "disabled"),
+    Output("tab2", "disabled"),
+    Input("open-settings-button", "n_clicks"),
+    Input("close-settings-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def settings(open_settings, close_settings):
+    triggered_id = ctx.triggered_id
+    if triggered_id == "open-settings-button":
+        return (
+            {"visibility": "visible"},
+            {"filter": "blur(5px)"},
+            {"filter": "blur(5px)"},
+            {"filter": "blur(5px)"},
+            True,
+            True,
+        )
+    else:
+        return (
+            {"visibility": "hidden"},
+            {"filter": "none"},
+            {"filter": "none"},
+            {"filter": "none"},
+            False,
+            False,
+        )
 
 
 def open_browser(port: int):

@@ -14,7 +14,21 @@ def header() -> html.Header:
     head = html.Header(
         [
             html.Div(
-                html.Button("Reset", id="reset", className="button"), className="col-2"
+                [
+                    html.Button(
+                        [
+                            html.Img(
+                                src="assets/settings-icon.svg",
+                                height="43px",
+                                className="settings-icon",
+                            ),
+                            "Settings",
+                        ],
+                        className="button",
+                        id="open-settings-button",
+                    )
+                ],
+                className="col-2",
             ),
             html.Div(
                 [
@@ -165,6 +179,7 @@ def body_feature():
                     ),
                     html.Div(  # info content on the right side: file data
                         [
+                            html.Div("File Statistics:", className="text"),
                             dbc.Table(id="file-data-table", className="info-table"),
                             html.Td(),
                             html.Div("Select a File:", className="text"),
@@ -191,7 +206,6 @@ def body_feature():
                 id="main",
                 className="main",
             ),
-            dcc.Store(id="filename", data=""),
         ]
     )
 
@@ -212,15 +226,19 @@ def tab_layout():
                         label="Feature Usage",
                         children=[body_feature()],
                         className="tab-right",
+                        id="tab1",
                     ),
                     dcc.Tab(
                         label="License Usage",
                         children=[body_license()],
                         className="tab-left",
+                        id="tab2",
                     ),
-                ]
+                ],
+                id="tabs",
             ),
             pop_up_messages(),
+            stores(),
         ]
     )
 
@@ -279,5 +297,90 @@ def pop_up_messages():
                 id="reset_msg",
                 className="reset_msg",
             ),
+            settings(),
         ]
+    )
+
+
+def stores():
+    return html.Div(
+        [
+            dcc.Store(id="filename", data=""),
+        ]
+    )
+
+
+def settings():
+    return html.Div(  # https://plotly.com/python/custom-buttons/
+        [
+            html.H1(["Settings"], className="settings-h1"),
+            dbc.Table(
+                [
+                    html.Tbody(
+                        [
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        html.H2("Graphs", className="text"),
+                                        className="settings-table-cell",
+                                    ),
+                                ],
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        ["Graph Style:"],
+                                        className="settings-table-cell",
+                                    ),
+                                    html.Td(
+                                        [
+                                            dcc.Dropdown(
+                                                ["automatic", "bar", "line"],
+                                                "automatic",
+                                                id="graph-type",
+                                                className="settings-dropdown",
+                                                clearable=False,
+                                            )
+                                        ],
+                                        className="settings-table-cell",
+                                    ),
+                                ],
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        html.H2("Database", className="text"),
+                                        className="settings-table-cell",
+                                    ),
+                                ],
+                            ),
+                            html.Tr(
+                                [
+                                    html.Td(
+                                        ["Reset:"],
+                                        className="settings-table-cell",
+                                    ),
+                                    html.Td(
+                                        [
+                                            html.Button(
+                                                "Reset", id="reset", className="button"
+                                            )
+                                        ],
+                                        className="settings-table-cell",
+                                    ),
+                                ],
+                            ),
+                        ]
+                    )
+                ],
+                className="settings-table",
+            ),
+            html.Button(
+                ["Close Settings"],
+                id="close-settings-button",
+                className="close-settings-button",
+            ),
+        ],
+        className="settings-div",
+        id="settings-div",
     )
