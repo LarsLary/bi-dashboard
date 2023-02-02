@@ -1,7 +1,7 @@
 import dash_bootstrap_components as dbc
 import dash_uploader
-
 from dash import dash, dcc, html
+
 from vis.graph_vis import empty_fig
 
 

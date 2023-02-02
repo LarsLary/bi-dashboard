@@ -6,7 +6,7 @@ import pandas as pd
 import sqlalchemy
 
 connection: Connection = None
-PATH = os.path.abspath("./cache/data_table.sqlite")
+PATH = os.path.abspath("./cache/data_table.db")
 
 
 def create_con() -> Connection:

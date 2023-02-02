@@ -1,8 +1,5 @@
 import os
-import sys
-import webbrowser
 from datetime import date
-from threading import Thread
 from time import sleep
 from typing import Callable
 
@@ -10,6 +7,8 @@ import dash_bootstrap_components as dbc
 import dash_uploader as du
 import diskcache
 import pandas as pd
+from dash import Dash, Input, Output, State, ctx, dash, dcc
+from dash.long_callback import DiskcacheLongCallbackManager
 from plotly.graph_objects import Figure
 from pptx import Presentation
 
@@ -17,8 +16,6 @@ import database.driver as driver
 import vis.prs_lib as prsLib
 from computation.data import DataPings, DataSessions, LicenseUsage
 from computation.features import Features
-from dash import Dash, Input, Output, State, ctx, dash, dcc
-from dash.long_callback import DiskcacheLongCallbackManager
 from vis.additional_data_vis import (
     get_cas_statistics,
     get_license_usage_table,
@@ -37,6 +34,7 @@ from vis.web_designs import DROPDOWN_OPTIONS, tab_layout
 
 GRAPH_LINE_COLOR = "#FFFFFF"
 UPLOAD_CACHE_PATH = os.path.abspath("./cache/upload_data/")
+HIGH_PERF_MODE = True
 
 # Diskcache - needed for long_callbacks
 cache = diskcache.Cache(os.path.abspath("./cache"))
@@ -119,7 +117,8 @@ def select_graph(
             xaxis_title="Time", yaxis_title="Token", legend_title="Idents"
         )
 
-    fig.update_traces(hovertemplate=None, hoverinfo="skip")
+    if HIGH_PERF_MODE:
+        fig.update_traces(hovertemplate=None, hoverinfo="skip")
 
     fig.update_xaxes(
         showline=True,
@@ -226,8 +225,6 @@ def update_output_div(
     """
     Parameters
     ----------
-    drop1 : String which represents the selected entry in the dropdown menu with the id 'dropdown1'
-    drop2 : String which represents the selected entry in the dropdown menu with the id 'dropdown2'
     start_date : String which represents the selected entry of the beginning day in the calendar tool
                     with the id 'select-date'
     end_date : String which represents the selected entry of the ending day in the calendar tool
@@ -373,7 +370,7 @@ def update_dropdown(
         pd.DataFrame.from_dict(additionals[str(drop2)])
     )
 
-    return (graph1, graph2, additional1, additional2)
+    return graph1, graph2, additional1, additional2
 
 
 def get_overview_table(data_pings: DataPings, file_identifier: str, cluster_id: str):
@@ -566,7 +563,7 @@ def export_data(
     """Export presentation on button click."""
 
     if clicks is not None:  # TODO: Do nothing if no data
-        prs = Presentation("./dash/assets/report_analysis_template.pptx")
+        prs = Presentation("./assets/report_analysis_template.pptx")
 
         # title slide
         prs.slides[0].shapes[0].text = "Report Analysis: " + name
@@ -729,29 +726,3 @@ def settings(open_settings, close_settings):
             False,
             False,
         )
-
-
-def open_browser(port: int):
-    """
-    Parameters
-    ----------
-    port : int which represents a port number
-
-    opens a browser with a specifed ip and port
-
-    Returns
-    -------
-    None
-    """
-    sleep(1)
-    if not os.environ.get("WERKZEUG_RUN_MAIN"):
-        webbrowser.open_new(f"http://127.0.0.1:{port}/")
-    sys.exit()  # Close thread
-
-
-if __name__ == "__main__":
-    port = 8050
-    Thread(target=open_browser, args=[port]).start()
-    app.run_server(
-        debug=True, port=port
-    )  # TODO: debug must be set to false in production
