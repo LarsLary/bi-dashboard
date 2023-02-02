@@ -10,8 +10,11 @@ import dash_bootstrap_components as dbc
 import dash_uploader as du
 import diskcache
 import pandas as pd
+from plotly.graph_objects import Figure
+from pptx import Presentation
 
 import database.driver as driver
+import vis.prs_lib as prsLib
 from computation.data import DataPings, DataSessions, LicenseUsage
 from computation.features import Features
 from dash import Dash, Input, Output, State, ctx, dash, dcc
@@ -30,7 +33,7 @@ from vis.graph_vis import (
     get_multi_files_graph,
     get_token_graph,
 )
-from vis.web_designs import tab_layout
+from vis.web_designs import DROPDOWN_OPTIONS, tab_layout
 
 GRAPH_LINE_COLOR = "#FFFFFF"
 UPLOAD_CACHE_PATH = os.path.abspath("./cache/upload_data/")
@@ -79,10 +82,10 @@ def select_graph(
     Returns
     -------
     plotly.express figure which is a selected graphical representation of the dataframe
-    dbc.Table : A table which represents additional information to the graph
+    pd.DataFrame : DataFrame ready for dbc.Table component
     """
     fig = empty_fig()
-    additional = ""
+    additional = pd.DataFrame()
     if menu_entry == "Token Consumption":
         fig = get_token_graph(session, graph_type=graph_type)
         additional = get_total_amount_table(session)
@@ -196,15 +199,14 @@ def update_output_license(filename: str):
 
 
 @app.callback(
-    Output(component_id="file-data-table", component_property="children"),
-    Output(component_id="graph1", component_property="children"),
-    Output(component_id="graph2", component_property="children"),
-    Output(component_id="graph_data1", component_property="children"),
-    Output(component_id="graph_data2", component_property="children"),
+    Output(component_id="overview_filename", component_property="children"),
+    Output(component_id="overview_lines", component_property="children"),
+    Output(component_id="overview_cal_days", component_property="children"),
+    Output(component_id="overview_metered_days", component_property="children"),
+    Output(component_id="graphs-store", component_property="children"),
+    Output("additionals-store", "data"),
     Output("select-date", "start_date"),
     Output("select-date", "end_date"),
-    Input(component_id="dropdown1", component_property="value"),
-    Input(component_id="dropdown2", component_property="value"),
     Input("select-date", "start_date"),
     Input("select-date", "end_date"),
     Input("filename", "data"),
@@ -214,8 +216,6 @@ def update_output_license(filename: str):
     prevent_inital_call=True,
 )
 def update_output_div(
-    drop1: str,
-    drop2: str,
     start_date: str,
     end_date: str,
     filename: str,
@@ -290,23 +290,32 @@ def update_output_div(
             """trimming the dataframe to fit into the selected dates"""
             sessions.crop_data(first, last)
 
-            """creating the both graphs based on the chosen entry in the dropdown menu"""
             if graph_type == "automatic":
                 graph_type = (
                     "bar" if (len(data_pings.get_metered_days()) <= 2) else "line"
                 )
 
-            fig1, additional1 = select_graph(drop1, sessions, file_select, graph_type)
-            fig2, additional2 = select_graph(drop2, sessions, file_select, graph_type)
+            graphs = []
+            additionals = dict()
+            for option in DROPDOWN_OPTIONS:
+                id = option["label"]
+                fig, additional = select_graph(id, sessions, file_select, graph_type)
+                graphs.append(dcc.Graph(figure=fig, className="graph"))
+                additionals[str(option["value"])] = additional.to_dict()
 
             driver.df_to_sql_replace(sessions.data, "current_data")
 
+            filename, lines, cal_days, metered_days = get_overview_table(
+                sessions.data_pings, file_select, c_id
+            )
+
             return (
-                get_overview_table(sessions.data_pings, file_select, c_id),
-                dcc.Graph(figure=fig1, className="graph"),
-                dcc.Graph(figure=fig2, className="graph"),
-                additional1,
-                additional2,
+                filename,
+                lines,
+                cal_days,
+                metered_days,  # overview_table data
+                graphs,
+                additionals,  # graphs-store, additionals-store
                 first,
                 last,
             )
@@ -323,52 +332,53 @@ def update_output_div(
             df_current, data_pings, features, 300, file_select, c_id
         )
 
-        """computation if a different representation of graph1 is selected"""
-        if ctx.triggered_id == "dropdown1":
-            """creating graph1 based on the chosen entry in the dropdown menu"""
-            fig1, additional1 = select_graph(drop1, sessions, file_select, graph_type)
-
-            return (
-                dash.no_update,
-                dcc.Graph(figure=fig1, className="graph"),
-                dash.no_update,
-                additional1,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-            )
-
-        """computation if a different representation of graph2 is selected"""
-        if ctx.triggered_id == "dropdown2":
-            """creating graph2 based on the chosen entry in the dropdown menu"""
-            fig2, additional2 = select_graph(drop2, sessions, file_select, graph_type)
-
-            return (
-                dash.no_update,
-                dash.no_update,
-                dcc.Graph(figure=fig2, className="graph"),
-                dash.no_update,
-                additional2,
-                dash.no_update,
-                dash.no_update,
-            )
+    filename, lines, cal_days, metered_days = get_overview_table(None, "", None)
 
     return (
-        get_overview_table(None, "", None),
-        dcc.Graph(figure=empty_fig()),
-        dcc.Graph(figure=empty_fig()),
-        "",
-        "",
+        filename,
+        lines,
+        cal_days,
+        metered_days,  # overview_table data
+        dash.no_update,
+        dash.no_update,  # graphs-store, additionals-store
         start_date,
         end_date,
     )
 
 
-def get_overview_table(
-    data_pings: DataPings, file_identifier: str, cluster_id: str
-) -> dash.html.Tbody:
+@app.callback(
+    Output(component_id="graph1", component_property="children"),
+    Output(component_id="graph2", component_property="children"),
+    Output(component_id="graph_data1", component_property="children"),
+    Output(component_id="graph_data2", component_property="children"),
+    Input("graphs-store", "children"),
+    Input("additionals-store", "data"),
+    Input(component_id="dropdown1", component_property="value"),
+    Input(component_id="dropdown2", component_property="value"),
+    prevent_inital_call=True,
+)
+def update_dropdown(
+    graphs: list,
+    additionals: dict,
+    drop1: int,
+    drop2: int,
+):
+    graph1 = graphs[drop1]
+    additional1 = dbc.Table.from_dataframe(
+        pd.DataFrame.from_dict(additionals[str(drop1)])
+    )
+
+    graph2 = graphs[drop2]
+    additional2 = dbc.Table.from_dataframe(
+        pd.DataFrame.from_dict(additionals[str(drop2)])
+    )
+
+    return (graph1, graph2, additional1, additional2)
+
+
+def get_overview_table(data_pings: DataPings, file_identifier: str, cluster_id: str):
     """
-    Creates a html table that contains some key metrics for given DataPings
+    Get overview table data.
 
     Parameters
     ----------
@@ -378,7 +388,14 @@ def get_overview_table(
 
     Returns
     -------
-    dash.html.Tbody containing 4 rows: report, lines, calendar days and metered days
+    filename: str
+        name of report
+    lines: str
+        number of pings
+    cal_days: str
+        number of calendar days
+    metered_days: str
+        number of metered days
     """
     if data_pings is not None:
         data_pings_new = DataPings(
@@ -397,34 +414,7 @@ def get_overview_table(
         cal_days = ""
         metered_days = ""
 
-    return dash.html.Tbody(
-        [
-            dash.html.Tr(
-                [
-                    dash.html.Td("Report:", className="info-table-cell"),
-                    dash.html.Td(filename, className="info-table-cell"),
-                ]
-            ),
-            dash.html.Tr(
-                [
-                    dash.html.Td("Lines:", className="info-table-cell"),
-                    dash.html.Td(lines, className="info-table-cell"),
-                ]
-            ),
-            dash.html.Tr(
-                [
-                    dash.html.Td("Calendar Days:", className="info-table-cell"),
-                    dash.html.Td(cal_days, className="info-table-cell"),
-                ]
-            ),
-            dash.html.Tr(
-                [
-                    dash.html.Td("Metered Days:", className="info-table-cell"),
-                    dash.html.Td(metered_days, className="info-table-cell"),
-                ]
-            ),
-        ]
-    )
+    return filename, lines, cal_days, metered_days
 
 
 @app.long_callback(
@@ -552,29 +542,61 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
 @app.callback(
     Output(component_id="exportFunc", component_property="data"),
     Input(component_id="export", component_property="n_clicks"),
-    State("dash-uploader", "fileNames"),
+    State("overview_filename", component_property="children"),
+    State("overview_lines", component_property="children"),
+    State("overview_cal_days", component_property="children"),
+    State("overview_metered_days", component_property="children"),
+    State("select-date", "start_date"),
+    State("select-date", "end_date"),
+    State("graphs-store", "children"),
+    State("additionals-store", "data"),
     prevent_initial_call=True,
 )
-def export_data(clicks: int, name: str):
-    """
-    Parameters
-    ----------
-    clicks : int which represents the number of times the 'upload' button was  clicked
-    name : String which represents the filename of the loaded csv-file
+def export_data(
+    clicks: int,
+    name: str,
+    lines: str,
+    cal_days: str,
+    metered_days: str,
+    start_date: str,
+    end_date: str,
+    graphs: list,
+    additionals: dict,
+):
+    """Export presentation on button click."""
 
-    downloads the dataframe onto the users computer into a textfile
+    if clicks is not None:  # TODO: Do nothing if no data
+        prs = Presentation("./dash/assets/report_analysis_template.pptx")
 
-    Returns
-    -------
-    None
-    """
+        # title slide
+        prs.slides[0].shapes[0].text = "Report Analysis: " + name
+        prs.slides[0].shapes[1].text = start_date + " - " + end_date
 
-    """Returns if data should be exported"""
-    if clicks is not None:
-        return dict(
-            content=driver.get_df_from_db("session").to_string(),
-            filename=name[0] + ".txt",
-        )
+        # data slide
+        prs.slides[1].shapes[0].table.cell(1, 0).text = name
+        prs.slides[1].shapes[0].table.cell(1, 1).text = cal_days
+        prs.slides[1].shapes[0].table.cell(1, 2).text = metered_days
+        prs.slides[1].shapes[0].table.cell(1, 3).text = lines
+
+        # graph & statistic slides
+        for option in DROPDOWN_OPTIONS:
+            id = option["value"]
+            name = option["label"]
+
+            # TODO check if graph empty => layout 4
+            slide = prs.slides.add_slide(
+                prs.slide_layouts[2] if additionals[str(id)] else prs.slide_layouts[3]
+            )
+            slide.shapes.title.text = name
+
+            # save and set graph
+            graph_path = "./export/graphs/" + str(id) + ".png"
+            Figure(graphs[id]["props"]["figure"]).write_image(graph_path)
+            prsLib.set_graph(slide, graph_path)
+
+            prsLib.set_table(slide, additionals[str(id)])
+
+        prs.save("./export/report.pptx")
 
 
 @app.long_callback(

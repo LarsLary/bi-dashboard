@@ -16,14 +16,12 @@ def get_total_amount_table(session: DataSessions):
 
     Returns
     -------
-    dbc.Table
-        Table with total token amount for each product and the total token amount
+    pd.DataFrame:
+        DataFrame for dbc.Table with total token amount for each product and the total token amount
     """
     data = session.get_total_token_amount()
 
-    return dbc.Table.from_dataframe(
-        pd.DataFrame({"Package": data.index, "Tokens": data.values}), id="table"
-    )
+    return pd.DataFrame({"Package": data.index, "Tokens": data.values})
 
 
 def get_package_combination_table(session: DataSessions):
@@ -35,15 +33,12 @@ def get_package_combination_table(session: DataSessions):
 
     Returns
     -------
-    dbc.Table
-        Table with percentual token usage for each product combination
+    pd.DataFrame:
+        DataFrame for dbc.Table with percentual token usage for each product combination
     """
     data = session.get_package_combination_percentage()
-    return dbc.Table.from_dataframe(
-        pd.DataFrame(
-            {"Combination": data.package_names, "Usage (%)": data.usage.round(2)}
-        ),
-        id="table",
+    return pd.DataFrame(
+        {"Combination": data.package_names, "Usage (%)": data.usage.round(2)}
     )
 
 
@@ -74,12 +69,12 @@ def get_cas_statistics(session: DataSessions):
 
     Returns
     -------
-     dbc.Table:
-        Table with Maximum, Mean and Mean for weekdays for the concurrent active sessions
+    pd.DataFrame:
+        DataFrame for dbc.Table with Maximum, Mean and Mean for weekdays for the concurrent active sessions
     """
     data = session.get_cas_statistics()
 
-    return dbc.Table.from_dataframe(data, className="table_without_head")
+    return pd.DataFrame({"Operation": data["name"], "Result": data["values"]})
 
 
 def get_license_usage_table(license_data: LicenseUsage):

@@ -1,7 +1,8 @@
 import dash_bootstrap_components as dbc
 import dash_uploader
 
-from dash import dcc, html
+from dash import dash, dcc, html
+from vis.graph_vis import empty_fig
 
 
 def header() -> html.Header:
@@ -103,12 +104,12 @@ def header() -> html.Header:
     return head
 
 
-dropdown_list = [
-    "Token Consumption",
-    "Concurrent Active Sessions",
-    "Product Usage",
-    "Cluster-ID Comparison",
-    "File Comparison",
+DROPDOWN_OPTIONS = [
+    {"label": "Token Consumption", "value": 0},
+    {"label": "Concurrent Active Sessions", "value": 1},
+    {"label": "Product Usage", "value": 2},
+    {"label": "Cluster-ID Comparison", "value": 3},
+    {"label": "File Comparison", "value": 4},
 ]
 
 
@@ -133,8 +134,8 @@ def body_feature():
                                 [
                                     dbc.Col(
                                         dcc.Dropdown(
-                                            dropdown_list,
-                                            "Token Consumption",
+                                            DROPDOWN_OPTIONS,
+                                            value=0,
                                             id="dropdown1",
                                             className="dropdown",
                                             clearable=False,
@@ -142,8 +143,8 @@ def body_feature():
                                     ),
                                     dbc.Col(
                                         dcc.Dropdown(
-                                            dropdown_list,
-                                            "Concurrent Active Sessions",
+                                            DROPDOWN_OPTIONS,
+                                            value=1,
                                             id="dropdown2",
                                             className="dropdown",
                                             clearable=False,
@@ -153,20 +154,34 @@ def body_feature():
                             ),
                             dbc.Row(
                                 [
-                                    dbc.Col(html.Div(id="graph1", className="graph")),
-                                    dbc.Col(html.Div(id="graph2", className="graph")),
+                                    dbc.Col(
+                                        html.Div(
+                                            dcc.Graph(figure=empty_fig()),
+                                            id="graph1",
+                                            className="graph",
+                                        )
+                                    ),
+                                    dbc.Col(
+                                        html.Div(
+                                            dcc.Graph(figure=empty_fig()),
+                                            id="graph2",
+                                            className="graph",
+                                        )
+                                    ),
                                 ]
                             ),
                             dbc.Row(
                                 [
                                     dbc.Col(
                                         html.Div(
+                                            "",
                                             id="graph_data1",
                                             className="graph_data",
                                         )
                                     ),
                                     dbc.Col(
                                         html.Div(
+                                            "",
                                             id="graph_data2",
                                             className="graph_data",
                                         )
@@ -180,7 +195,11 @@ def body_feature():
                     html.Div(  # info content on the right side: file data
                         [
                             html.Div("File Statistics:", className="text"),
-                            dbc.Table(id="file-data-table", className="info-table"),
+                            dbc.Table(
+                                overview_table,
+                                id="file-data-table",
+                                className="info-table",
+                            ),
                             html.Td(),
                             html.Div("Select a File:", className="text"),
                             dcc.Dropdown(
@@ -306,6 +325,16 @@ def stores():
     return html.Div(
         [
             dcc.Store(id="filename", data=""),
+            html.Div(
+                children=[
+                    dcc.Graph(figure=empty_fig()),
+                    dcc.Graph(figure=empty_fig()),
+                    dcc.Graph(figure=empty_fig()),
+                ],
+                id="graphs-store",
+                style={"display": "none"},
+            ),
+            dcc.Store(id="additionals-store", data={"0": {}, "1": {}}),
         ]
     )
 
@@ -384,3 +413,35 @@ def settings():
         className="settings-div",
         id="settings-div",
     )
+
+
+overview_table = dash.html.Tbody(
+    [
+        dash.html.Tr(
+            [
+                dash.html.Td("Report:", className="info-table-cell"),
+                dash.html.Td("", id="overview_filename", className="info-table-cell"),
+            ]
+        ),
+        dash.html.Tr(
+            [
+                dash.html.Td("Lines:", className="info-table-cell"),
+                dash.html.Td("", id="overview_lines", className="info-table-cell"),
+            ]
+        ),
+        dash.html.Tr(
+            [
+                dash.html.Td("Calendar Days:", className="info-table-cell"),
+                dash.html.Td("", id="overview_cal_days", className="info-table-cell"),
+            ]
+        ),
+        dash.html.Tr(
+            [
+                dash.html.Td("Metered Days:", className="info-table-cell"),
+                dash.html.Td(
+                    "", id="overview_metered_days", className="info-table-cell"
+                ),
+            ]
+        ),
+    ]
+)
