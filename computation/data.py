@@ -782,7 +782,7 @@ class LicenseUsage:
             .reset_index()
             .sort_values(by=["resource_id"], ascending=False)
         )
-        result["feature_name"] = (result["feature_name"].str.rsplit("/", 1)).str[-1]
+        result["feature_name"] = (result["feature_name"].str.rsplit("/", n=1)).str[-1]
         total_row = pd.Series(
             {"feature_name": "Total", "resource_id": result["resource_id"].sum()}
         )

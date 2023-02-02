@@ -1,8 +1,4 @@
-dirs := dash vis computation database
-
-build:
-	pyinstaller dash/app.py
-	pyinstaller app.spec
+dirs := dash_app vis computation database
 
 quality:
 	black --check --preview $(dirs)

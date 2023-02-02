@@ -322,7 +322,7 @@ body {
 /* Default classes used by Dash */
 .dash-graph {
     width: 36vw;
-    height: 23vw;
+    height: 50vh;
 }
 
 .tab-container {
