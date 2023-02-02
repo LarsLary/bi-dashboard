@@ -50,3 +50,5 @@ wcwidth==0.2.5
 Werkzeug==2.2.2
 packaging==21.3
 SQLAlchemy==1.4.44
+python-pptx==0.6.21
+kaleido==0.2.1
