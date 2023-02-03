@@ -513,7 +513,7 @@ class DataSessions:
 
         return data
 
-    def get_cas(self, interval: str = "D"):
+    def get_cas(self, interval: str = "D", multi_files: bool = False):
         """
         Get number of concurrent active sessions by date.
 
@@ -530,6 +530,9 @@ class DataSessions:
         -------
         pd.DataFrame
             data frame containing most active sessions (within 15 min) per given interval
+        multi_files : bool
+            indicator if files should be grouped by identifier or not
+
 
         Raises
         ------
@@ -541,30 +544,50 @@ class DataSessions:
 
         # remove sessions, that don't include one of the 15min-timestamps
         data = self.data
-        data = data[data["identifier"] == self.file_selector]
-        if self.cluster_id_selector is not None:
-            data = data[data["cluster_id"] == self.cluster_id_selector]
-        s = data["block_start"].copy()
-        s = s[
-            (s.str[14:16].astype("int") % 15 >= 10)
-            | (
-                (s.str[14:16].astype("int") % 15 == 0)
-                & (s.str[17:19].astype("int") == 0)
-            )
-        ]
+        if multi_files:
+            s = data[["block_start", "identifier"]].copy()
+            s = s[
+                (s["block_start"].str[14:16].astype("int") % 15 >= 10)
+                | (
+                    (s["block_start"].str[14:16].astype("int") % 15 == 0)
+                    & (s["block_start"].str[17:19].astype("int") == 0)
+                )
+            ]
+            data = s
+        else:
+            data = data[data["identifier"] == self.file_selector]
+            if self.cluster_id_selector is not None:
+                data = data[data["cluster_id"] == self.cluster_id_selector]
+            s = data["block_start"].copy()
+            s = s[
+                (s.str[14:16].astype("int") % 15 >= 10)
+                | (
+                    (s.str[14:16].astype("int") % 15 == 0)
+                    & (s.str[17:19].astype("int") == 0)
+                )
+            ]
+            data = s.to_frame()
 
-        data = s.to_frame()
         data = data.reset_index(drop=True)
         data.rename(columns={"block_start": "time"}, inplace=True)
         data["time"] = pd.to_datetime(data["time"])
         data["amount"] = 1
 
         # amount of sessions that are active at 15min-timestamps
-        data = data.groupby(pd.Grouper(key="time", freq="15min"))["amount"].sum()
+        if multi_files:
+            groupers = [pd.Grouper(key="time", freq="15min"), "identifier"]
+        else:
+            groupers = pd.Grouper(key="time", freq="15min")
+
+        data = data.groupby(groupers)["amount"].sum()
         data = data.reset_index()
 
         # find max num of 15min interval-sessions in given interval
-        data = data.groupby(pd.Grouper(key="time", freq=interval))["amount"].max()
+        if multi_files:
+            groupers = [pd.Grouper(key="time", freq=interval), "identifier"]
+        else:
+            groupers = pd.Grouper(key="time", freq=interval)
+        data = data.groupby(groupers)["amount"].max()
         data = data.reset_index()
 
         return data
@@ -719,18 +742,96 @@ class DataSessions:
         dates["time"] = pd.to_datetime(dates["time"])
         for x in group_by:
             table = data[data[group_in] == x].copy()
-            drops = [group_in]
-            drops.extend(self.features["keyword"].tolist())
+            if group_in == "identifier":
+                drops = ["identifier"]
+            else:
+                drops = [group_in]
+                drops.extend(self.features["keyword"].tolist())
             table.drop(
                 drops,
                 axis="columns",
                 inplace=True,
             )
+            if group_in == "identifier":
+                for name in self.features["keyword"].tolist():
+                    table.rename(columns={name: x + "-" + name}, inplace=True)
+
             table.rename(columns={"total": x}, inplace=True)
             dates = pd.merge(dates, table, on="time", how="outer")
 
         dates.fillna(0, inplace=True)
         return dates
+
+    def get_multi_cas(self, idents, interval: str = "D"):
+        """
+        Return concurrent active session for given interval in all files.
+
+        Parameters
+        ----------
+        idents: list or array
+            containing all file identifier
+        interval : str
+            length of interval
+            for minutes use: "[num of min]min"
+            for hours use: "[num of hours]H"
+            for days use: "[num of days]D"
+            full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+
+        Returns
+        -------
+        pd.DataFrame
+            data frame containing total cost per chosen interval for each file identifier
+        """
+        data = self.get_cas(interval, True).copy()
+
+        dates = pd.DataFrame({"time": self.data_pings.get_sequence_of_days()})
+        dates["time"] = pd.to_datetime(dates["time"])
+        for ident in idents:
+            ident_table = data[data["identifier"] == ident].copy()
+            ident_table.drop(
+                ["identifier"],
+                axis="columns",
+                inplace=True,
+            )
+            ident_table.rename(columns={"amount": ident}, inplace=True)
+            dates = pd.merge(dates, ident_table, on="time", how="outer")
+
+        dates.fillna(0, inplace=True)
+        return dates
+
+    def get_multi_total_token_amount(self, idents):
+        """
+        Compute the total token usage.
+
+        Returns
+        -------
+        pd.Dataframe:
+                total token usage for each product and total token usage
+        """
+        data = self.get_selector_comparison_data(idents, "identifier", interval="15min")
+        cols_ = self.features["keyword"].tolist()
+
+        columns = ["identifier"]
+        columns.extend(cols_)
+        columns.append("total")
+        df = pd.DataFrame([], columns=columns)
+        for ident in idents:
+            cols = []
+            for col in cols_:
+                cols.append(ident + "-" + col)
+            cols.append(ident)
+            data_ident = data[cols].sum()
+            data_ident = pd.concat([pd.Series([ident]), data_ident])
+            data_ident = pd.DataFrame([data_ident.values], columns=columns)
+            df = pd.concat([df, data_ident], ignore_index=True)
+
+        sums = ["total"]
+        for column in columns:
+            if column != "identifier":
+                sums.append(df[column].sum())
+        data_sums = pd.DataFrame([sums], columns=columns)
+        df = pd.concat([df, data_sums], ignore_index=True)
+        return df
 
     def get_cluster_ids(self):
         """Returns list of cluster_ids that appear in sessions.

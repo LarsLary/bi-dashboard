@@ -71,7 +71,7 @@ body {
     align-items: center;
 }
 
-.button {
+.button, .button_reset {
     width: auto;
     color: var(--accent-color-1);
     text-align: center;
@@ -84,7 +84,7 @@ body {
     box-shadow: var(--default-shadow);
 }
 
-.button:hover {
+.button:hover, .button_reset:hover {
     box-shadow: var(--default-shadow-hover);
 }
 
@@ -119,27 +119,6 @@ body {
     align-items: center;
     justify-content: center;
     height: 100%;
-}
-
-.settings-table {
-    border: none;
-}
-
-.settings-table>thead {
-    display: none;
-}
-
-.settings-table> :not(:first-child) {
-    border-top: 1px solid var(--bright-color);
-}
-
-.settings-table-cell {
-    border: none;
-}
-
-.settings-dropdown {
-    text-align: center;
-    width: 36vw;
 }
 
 .info-table-cell {
@@ -226,38 +205,64 @@ body {
 
 .settings-icon {
     height: 2.5vh;
-    margin: 0px;
-    padding: 0px;
-    padding-right: 5px;
+    margin: 0;
+    padding: 0 5px 0 0;
+}
+
+.settings-dropdown {
+    text-align: center;
+    margin-left: 10%;
+    margin-bottom: 5px;
+    width: 8vw;
+}
+
+.settings-dropdown> .Select-menu-outer {
+    width: 8vw;
 }
 
 .settings-div {
-    visibility: hidden;
-    padding: 2% 10%;
     background: var(--background-light-color);
-    width: 89vw;
+    width: 10vw;
     height: 89vh;
     position: absolute;
-    top: 50%;
-    left: 50%;
-    margin-right: -50%;
-    transform: translate(-50%, -50%);
+    top: 5%;
     border: 1px solid var(--accent-color-1);
-    border-radius: 15px;
+    border-left: 0;
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
     color: var(--accent-color-1);
+    transition: left 0.5s linear;
     align-items: center;
 }
 
 .settings-h1 {
-    font-size: 55px;
+    margin-top: 5px;
+    font-size: 23px;
     color: var(--bright-color);
     text-align: center;
     align-items: center;
 }
 
+.settings-h2 {
+    margin-top: 10%;
+    font-size: 20px;
+    color: var(--bright-color);
+    text-align: center;
+    align-items: center;
+}
+
+.button_reset {
+    position: absolute;
+    text-align: center;
+    margin-top: 10%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+}
+
 .close-settings-button {
     position: absolute;
-    bottom: 0px;
+    bottom: 0;
     left: 50%;
     margin-right: -50%;
     transform: translate(-50%, -50%);
@@ -267,7 +272,7 @@ body {
     padding: 0.5vh 2vh 0.5vh 2vh;
     background-color: var(--background-dark-color);
     color: var(--bright-color);
-    font-size: 28px;
+    font-size: 16px;
 }
 
 .close-settings-button:hover {
@@ -282,7 +287,7 @@ body {
     padding: 5px 0 !important;
     text-align: center !important;
     vertical-align: middle !important;
-    margin: 0px;
+    margin: 0;
 }
 
 .tab-right {

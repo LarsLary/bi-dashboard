@@ -19,6 +19,7 @@ from computation.features import Features
 from vis.additional_data_vis import (
     get_cas_statistics,
     get_license_usage_table,
+    get_multi_total_amount_table,
     get_package_combination_table,
     get_total_amount_table,
 )
@@ -27,6 +28,7 @@ from vis.graph_vis import (
     get_cas_graph,
     get_cluster_id_comparison_graph,
     get_fpc_graph,
+    get_multi_cas_graph,
     get_multi_files_graph,
     get_token_graph,
 )
@@ -84,6 +86,13 @@ def select_graph(
     """
     fig = empty_fig()
     additional = pd.DataFrame()
+    idents = driver.get_df_from_db("identifier")
+    idents = (
+        idents[idents["Type"] == "Feature"]["FileIdentifier"]
+        .to_numpy(dtype=str)
+        .flatten()
+    )
+
     if menu_entry == "Token Consumption":
         fig = get_token_graph(session, graph_type=graph_type)
         additional = get_total_amount_table(session)
@@ -110,12 +119,15 @@ def select_graph(
         fig.update_layout(
             xaxis_title="Time", yaxis_title="Token", legend_title="Idents"
         )
-    elif menu_entry == "File Comparison":
-        idents = driver.get_df_from_db("identifier").to_numpy(dtype=str).flatten()
+    elif menu_entry == "File Comparison (Token)":
         fig = get_multi_files_graph(session, idents, graph_type=graph_type)
         fig.update_layout(
             xaxis_title="Time", yaxis_title="Token", legend_title="Idents"
         )
+        additional = get_multi_total_amount_table(session, idents)
+    elif menu_entry == "File Comparison (CAS)":
+        fig = get_multi_cas_graph(session, idents)
+        fig.update_layout(xaxis_title="Time", yaxis_title="CAS", legend_title="Idents")
 
     if HIGH_PERF_MODE:
         fig.update_traces(hovertemplate=None, hoverinfo="skip")
@@ -173,7 +185,7 @@ def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
 
 @app.callback(
     Output(component_id="graph_data3", component_property="children"),
-    Input("filename_license", "data"),
+    Input("file-select-license", "value"),
     prevent_inital_call=True,
 )
 def update_output_license(filename: str):
@@ -190,6 +202,7 @@ def update_output_license(filename: str):
     """
     if driver.check_if_table_exists("license"):
         license_data = driver.get_df_from_db("license")
+        license_data = license_data[license_data["identifier"] == filename]
         license_usage = LicenseUsage(license_data)
         additional = get_license_usage_table(license_usage)
         return additional
@@ -469,19 +482,33 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
     if is_com:
         header_text = "Upload Report"
         set_progress((100, "0/5", header_text, "Waiting for input", True))
-        # without "sleep()" the user cannot see the first progress on the website
-        sleep(1)
 
         while confirm is None:
             sleep(0.1)
 
         # 1. Convert Data
         set_progress((0, "0/5", header_text, "Converting Data", False))
+        # without "sleep()" the user cannot see the progress on the website
         sleep(1)
 
         filename = files[0].split(".")[0]
 
         datagram = convert_report_to_df(files[0])
+
+        if "grant_id" in datagram.columns:
+            set_progress((60, "3/5", header_text, "Loading License Data", False))
+            sleep(1)
+            ident = driver.get_last_input("identifier")
+            table = driver.get_df_from_db("identifier")
+            table.loc[len(table.index) - 1, "Type"] = "License"
+            driver.df_to_sql_replace(table, "identifier")
+
+            license_data = datagram
+            license_data["identifier"] = ident
+            driver.df_to_sql_append(datagram, "license")
+            set_progress((100, "5/5", header_text, "Loaded Data Successfully", False))
+            sleep(1)
+            return None, False, dash.no_update, filename
 
         set_progress(
             (20, "1/5", header_text, "Getting Number of Lines and Features", False)
@@ -490,13 +517,6 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
 
         # 2. Get Features
         features = Features().get_data_features()
-
-        if "grant_id" in datagram.columns:
-            driver.df_to_sql_append(datagram, "license")
-            set_progress((100, "5/5", header_text, "Loaded Data Successfully", False))
-            sleep(1)
-            return None, False, dash.no_update, filename
-
         set_progress((40, "2/5", header_text, "Extracting DataPings", False))
         sleep(1)
 
@@ -515,6 +535,11 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
         df_pings = data_pings.data.copy()
 
         ident = driver.get_last_input("identifier")
+
+        table = driver.get_df_from_db("identifier").copy()
+        table.loc[len(table.index) - 1, "Type"] = "Feature"
+        driver.df_to_sql_replace(table, "identifier")
+
         df_session["identifier"] = ident
         df_pings["identifier"] = ident
 
@@ -643,7 +668,9 @@ def data_name_input(name):
         Resets the input field
     """
     if name is not None:
-        driver.df_to_sql_append(pd.DataFrame({"FileIdentifier": [name]}), "identifier")
+        driver.df_to_sql_append(
+            pd.DataFrame({"FileIdentifier": [name], "Type": "unknown"}), "identifier"
+        )
         driver.filter_duplicates("identifier")
     return None
 
@@ -651,13 +678,16 @@ def data_name_input(name):
 @app.callback(
     Output("file-select", "options"),
     Output("file-select", "value"),
+    Output("file-select-license", "options"),
+    Output("file-select-license", "value"),
     Output("cluster_id-select", "options"),
     Output("cluster_id-select", "value"),
     Input("filename", "data"),
+    Input("filename_license", "data"),
     Input("file-select", "value"),
     prevent_inital_call=True,
 )
-def set_select_options(filename: str, file_select_value: str):
+def set_select_options(filename: str, filename_license: str, file_select_value: str):
     """
     Update both select menus when uploading new files and update cluster_id select menu when another file is selected
 
@@ -681,48 +711,47 @@ def set_select_options(filename: str, file_select_value: str):
     c_ids = []
     cur_c_id = dash.no_update
     if driver.check_if_table_exists("identifier"):
-        idents = driver.get_df_from_db("identifier").to_numpy(dtype=str).flatten()
+        idents = driver.get_df_from_db("identifier")
+        if ctx.triggered_id == "filename_license":
+            idents = (
+                idents[idents["Type"] == "License"]["FileIdentifier"]
+                .to_numpy(dtype=str)
+                .flatten()
+            )
+            return (
+                dash.no_update,
+                dash.no_update,
+                idents,
+                idents[len(idents) - 1],
+                dash.no_update,
+                dash.no_update,
+            )
         cur_c_id = "All Cluster-IDs"
         c_ids = driver.get_df_from_db("cluster_ids")
         if ctx.triggered_id == "filename":
+            idents = (
+                idents[idents["Type"] == "Feature"]["FileIdentifier"]
+                .to_numpy(dtype=str)
+                .flatten()
+            )
             c_ids = c_ids[c_ids["identifier"] == idents[-1]]
         else:
             c_ids = c_ids[c_ids["identifier"] == file_select_value]
         c_ids = c_ids["cluster_id"].to_numpy().tolist()
         c_ids = ["All Cluster-IDs"] + c_ids
         if ctx.triggered_id == "filename":
-            return idents, idents[-1], c_ids, cur_c_id
-    return idents, dash.no_update, c_ids, cur_c_id
+            return idents, idents[-1], dash.no_update, dash.no_update, c_ids, cur_c_id
+    return idents, dash.no_update, dash.no_update, dash.no_update, c_ids, cur_c_id
 
 
 @app.callback(
     Output("settings-div", "style"),
-    Output("header", "style"),
-    Output("main", "style"),
-    Output("tabs", "style"),
-    Output("tab1", "disabled"),
-    Output("tab2", "disabled"),
     Input("open-settings-button", "n_clicks"),
     Input("close-settings-button", "n_clicks"),
-    prevent_initial_call=True,
 )
 def settings(open_settings, close_settings):
     triggered_id = ctx.triggered_id
     if triggered_id == "open-settings-button":
-        return (
-            {"visibility": "visible"},
-            {"filter": "blur(5px)"},
-            {"filter": "blur(5px)"},
-            {"filter": "blur(5px)"},
-            True,
-            True,
-        )
+        return {"left": "0%"}
     else:
-        return (
-            {"visibility": "hidden"},
-            {"filter": "none"},
-            {"filter": "none"},
-            {"filter": "none"},
-            False,
-            False,
-        )
+        return {"left": "-20%"}

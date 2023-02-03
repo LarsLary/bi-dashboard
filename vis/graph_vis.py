@@ -164,3 +164,30 @@ def get_multi_files_graph(
     fig.update_layout(paper_bgcolor="rgba(0,0,0,0)")
 
     return fig
+
+
+def get_multi_cas_graph(session: DataSessions, idents) -> Figure:
+    """
+    Parameters
+    ----------
+    session:
+         DataSession
+    idents:
+        list or array containing all identifier
+
+    Returns
+    -------
+    plotly.express
+        figure (px.line) which shows the total token usage for each file identifier
+    """
+    if len(session.data_pings.get_metered_days()) <= 3:
+        data = session.get_multi_cas(idents, interval="15min")
+    else:
+        data = session.get_multi_cas(idents)
+    fig = px.line(
+        data,
+        x="time",
+        y=idents,
+        render_mode="webgl",
+    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    return fig
