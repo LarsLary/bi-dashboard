@@ -99,3 +99,20 @@ def get_license_usage_table(license_data: LicenseUsage):
         ),
         id="table_license",
     )
+
+
+def get_multi_total_amount_table(session: DataSessions, idents):
+    """
+    Parameter
+    ---------
+    session:
+         DataSession which represents the session which should be used for computation
+
+    Returns
+    -------
+    dbc.Table
+        Table with total token amount for each product and the total token amount
+    """
+    data = session.get_multi_total_token_amount(idents)
+
+    return data

@@ -22,8 +22,7 @@ def header() -> html.Header:
                                 src="assets/settings-icon.svg",
                                 height="43px",
                                 className="settings-icon",
-                            ),
-                            "Settings",
+                            )
                         ],
                         className="button",
                         id="open-settings-button",
@@ -109,7 +108,8 @@ DROPDOWN_OPTIONS = [
     {"label": "Concurrent Active Sessions", "value": 1},
     {"label": "Product Usage", "value": 2},
     {"label": "Cluster-ID Comparison", "value": 3},
-    {"label": "File Comparison", "value": 4},
+    {"label": "File Comparison (Token)", "value": 4},
+    {"label": "File Comparison (CAS)", "value": 5},
 ]
 
 
@@ -199,23 +199,6 @@ def body_feature():
                                 overview_table,
                                 id="file-data-table",
                                 className="info-table",
-                            ),
-                            html.Td(),
-                            html.Div("Select a File:", className="text"),
-                            dcc.Dropdown(
-                                [],
-                                "",
-                                id="file-select",
-                                className="dropdown_small",
-                                clearable=False,
-                            ),
-                            html.Div("Select a Cluster-ID:", className="text"),
-                            dcc.Dropdown(
-                                [],
-                                "",
-                                id="cluster_id-select",
-                                className="dropdown_small",
-                                clearable=False,
                             ),
                         ],
                         id="info-column",
@@ -343,67 +326,42 @@ def settings():
     return html.Div(  # https://plotly.com/python/custom-buttons/
         [
             html.H1(["Settings"], className="settings-h1"),
-            dbc.Table(
-                [
-                    html.Tbody(
-                        [
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        html.H2("Graphs", className="text"),
-                                        className="settings-table-cell",
-                                    ),
-                                ],
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        ["Graph Style:"],
-                                        className="settings-table-cell",
-                                    ),
-                                    html.Td(
-                                        [
-                                            dcc.Dropdown(
-                                                ["automatic", "bar", "line"],
-                                                "automatic",
-                                                id="graph-type",
-                                                className="settings-dropdown",
-                                                clearable=False,
-                                            )
-                                        ],
-                                        className="settings-table-cell",
-                                    ),
-                                ],
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        html.H2("Database", className="text"),
-                                        className="settings-table-cell",
-                                    ),
-                                ],
-                            ),
-                            html.Tr(
-                                [
-                                    html.Td(
-                                        ["Reset:"],
-                                        className="settings-table-cell",
-                                    ),
-                                    html.Td(
-                                        [
-                                            html.Button(
-                                                "Reset", id="reset", className="button"
-                                            )
-                                        ],
-                                        className="settings-table-cell",
-                                    ),
-                                ],
-                            ),
-                        ]
-                    )
-                ],
-                className="settings-table",
+            html.H2(["Graphs"], className="settings-h2"),
+            html.Div(["Graph Style:"], className="text"),
+            dcc.Dropdown(
+                ["automatic", "bar", "line"],
+                "automatic",
+                id="graph-type",
+                className="settings-dropdown",
+                clearable=False,
             ),
+            html.Div(["Select a Report:"], className="text"),
+            dcc.Dropdown(
+                [],
+                "",
+                id="file-select",
+                className="settings-dropdown",
+                clearable=False,
+            ),
+            html.Div(["Select a Cluster-ID:"], className="text"),
+            dcc.Dropdown(
+                [],
+                "",
+                id="cluster_id-select",
+                className="settings-dropdown",
+                clearable=False,
+            ),
+            html.Div(["Select a license file:"], className="text"),
+            dcc.Dropdown(
+                [],
+                "",
+                id="file-select-license",
+                className="settings-dropdown",
+                clearable=False,
+            ),
+            html.H2(["Database"], className="settings-h2"),
+            html.Div(["Reset:"], className="text"),
+            html.Button("Reset", id="reset", className="button_reset"),
             html.Button(
                 ["Close Settings"],
                 id="close-settings-button",
