@@ -318,6 +318,7 @@ def stores():
                 style={"display": "none"},
             ),
             dcc.Store(id="additionals-store", data={"0": {}, "1": {}}),
+            dcc.Store(id="license-store", data={}),
         ]
     )
 

@@ -88,17 +88,14 @@ def get_license_usage_table(license_data: LicenseUsage):
 
     Returns
     -------
-     dbc.Table:
-        Table with the number of Cache Generation per Feature and the total number of Cache Generations
+     pd.DataFrame:
+        DataFrame for dbc.Table with the number of Cache Generation per Feature and the total number of Cache Generations
     """
     data = license_data.get_license_usage_data()
 
-    return dbc.Table.from_dataframe(
-        pd.DataFrame(
+    return pd.DataFrame(
             {"Loader": data.feature_name, "Cache Generations": data.resource_id}
-        ),
-        id="table_license",
-    )
+        )
 
 
 def get_multi_total_amount_table(session: DataSessions, idents):

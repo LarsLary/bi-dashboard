@@ -185,6 +185,7 @@ def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
 
 @app.callback(
     Output(component_id="graph_data3", component_property="children"),
+    Output("license-store", "data"),
     Input("file-select-license", "value"),
     prevent_inital_call=True,
 )
@@ -205,9 +206,9 @@ def update_output_license(filename: str):
         license_data = license_data[license_data["identifier"] == filename]
         license_usage = LicenseUsage(license_data)
         additional = get_license_usage_table(license_usage)
-        return additional
+        return dbc.Table.from_dataframe(additional), additional.to_dict()
     else:
-        return dash.no_update
+        return dash.no_update, dash.no_update
 
 
 @app.callback(
@@ -572,6 +573,7 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
     State("select-date", "end_date"),
     State("graphs-store", "children"),
     State("additionals-store", "data"),
+    State("license-store", "data"),
     prevent_initial_call=True,
 )
 def export_data(
@@ -584,6 +586,7 @@ def export_data(
     end_date: str,
     graphs: list,
     additionals: dict,
+    license: dict,
 ):
     """Export presentation on button click."""
 
@@ -618,6 +621,13 @@ def export_data(
 
             prsLib.set_table(slide, additionals[str(id)])
 
+        # license usage slide
+        if license:
+            slide = prs.slides.add_slide(prs.slide_layouts[4])
+            slide.shapes.title.text = "License Usage"
+            print(license)
+            prsLib.set_table(slide, license)
+        
         prs.save("./export/report.pptx")
 
 
