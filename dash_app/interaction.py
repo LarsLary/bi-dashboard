@@ -269,7 +269,10 @@ def update_output_license(filename: str):
         license_data = background.get_license_data_of(filename)
         license_usage = LicenseUsage(license_data)
         additional = get_license_usage_table(license_usage)
-        return dbc.Table.from_dataframe(additional), additional.to_dict()
+        return (
+            dbc.Table.from_dataframe(additional, style={"text-align": "right"}),
+            additional.to_dict(),
+        )
     else:
         return dash.no_update, dash.no_update
 
@@ -293,12 +296,12 @@ def update_dropdown(
 ):
     graph1 = graphs[drop1]
     additional1 = dbc.Table.from_dataframe(
-        pd.DataFrame.from_dict(additionals[str(drop1)])
+        pd.DataFrame.from_dict(additionals[str(drop1)]), style={"text-align": "right"}
     )
 
     graph2 = graphs[drop2]
     additional2 = dbc.Table.from_dataframe(
-        pd.DataFrame.from_dict(additionals[str(drop2)])
+        pd.DataFrame.from_dict(additionals[str(drop2)]), style={"text-align": "right"}
     )
 
     return graph1, graph2, additional1, additional2
@@ -332,7 +335,7 @@ def export_data(
 ):
     """Export presentation on button click."""
 
-    if clicks is not None:  # TODO: Do nothing if no data
+    if clicks is not None:
         prs = Presentation("./assets/report_analysis_template.pptx")
 
         # title slide
@@ -350,7 +353,6 @@ def export_data(
             id = option["value"]
             name = option["label"]
 
-            # TODO check if graph empty => layout 4
             slide = prs.slides.add_slide(
                 prs.slide_layouts[2] if additionals[str(id)] else prs.slide_layouts[3]
             )
@@ -362,12 +364,12 @@ def export_data(
             prs_lib.set_graph(slide, graph_path)
 
             prs_lib.set_table(slide, additionals[str(id)])
-            # license usage slide
-            if license:
-                slide = prs.slides.add_slide(prs.slide_layouts[4])
-                slide.shapes.title.text = "License Usage"
-                print(license)
-                prs_lib.set_table(slide, license)
+
+        # license usage slide
+        if license:
+            slide = prs.slides.add_slide(prs.slide_layouts[4])
+            slide.shapes.title.text = "License Usage"
+            prs_lib.set_table(slide, license)
 
         prs.save("./export/report.pptx")
 

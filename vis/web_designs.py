@@ -36,6 +36,7 @@ def header() -> html.Header:
                         [
                             dash_uploader.Upload(
                                 text="Upload Report",
+                                text_completed="Upload Report. Latest: ",
                                 id="dash-uploader",
                                 filetypes=["csv"],
                             )
@@ -70,7 +71,7 @@ def header() -> html.Header:
                     "Time interval: ",
                     dcc.DatePickerRange(
                         id="select-date",
-                        month_format="M-D-Y-Q",
+                        month_format="MMMM Y",
                         start_date_placeholder_text="Start",
                         end_date_placeholder_text="Ende",
                     ),

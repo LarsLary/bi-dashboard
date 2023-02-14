@@ -20,7 +20,9 @@ def get_total_amount_table(session: DataSessions):
     """
     data = session.get_total_token_amount()
 
-    return pd.DataFrame({"Package": data.index, "Tokens": data.values})
+    return apply_thousand_seperator(
+        pd.DataFrame({"Package": data.index, "Tokens": data.values})
+    )
 
 
 def get_package_combination_table(session: DataSessions):
@@ -73,7 +75,9 @@ def get_cas_statistics(session: DataSessions):
     """
     data = session.get_cas_statistics()
 
-    return pd.DataFrame({"Operation": data["name"], "Result": data["values"]})
+    return apply_thousand_seperator(
+        pd.DataFrame({"Operation": data["name"], "Result": data["values"]})
+    )
 
 
 def get_license_usage_table(license_data: LicenseUsage):
@@ -93,8 +97,10 @@ def get_license_usage_table(license_data: LicenseUsage):
     """
     data = license_data.get_license_usage_data()
 
-    return pd.DataFrame(
-        {"Loader": data.feature_name, "Cache Generations": data.resource_id}
+    return apply_thousand_seperator(
+        pd.DataFrame(
+            {"Loader": data.feature_name, "Cache Generations": data.resource_id}
+        )
     )
 
 
@@ -112,4 +118,14 @@ def get_multi_total_amount_table(session: DataSessions, idents):
     """
     data = session.get_multi_total_token_amount(idents)
 
-    return data
+    return apply_thousand_seperator(data)
+
+
+def apply_thousand_seperator(df: pd.DataFrame):
+    first = True
+    for column in df:
+        if not first:
+            df[column] = df[column].map("{:,.0f}".format).str.replace(",", " ")
+        first = False
+
+    return df
