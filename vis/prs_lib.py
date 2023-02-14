@@ -1,5 +1,6 @@
 import pandas as pd
 from pptx.enum.shapes import PP_PLACEHOLDER
+from pptx.enum.text import PP_ALIGN
 
 # Light Style 1 - Accent 6
 TABLE_STYLE = "{68D230F3-CF80-4859-8CE7-A43EE81993B5}"
@@ -55,4 +56,5 @@ def set_table(slide, additional: dict):
             i = 0
             for cell in table.iter_cells():
                 cell.text = str(flat_df[i])
+                cell.text_frame.paragraphs[0].alignment = PP_ALIGN.RIGHT
                 i = i + 1
