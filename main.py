@@ -4,7 +4,7 @@ import webbrowser
 from threading import Thread
 from time import sleep
 
-from dash_app import app
+from dash_app import interaction
 
 
 def open_browser(port_num: int):
@@ -28,7 +28,7 @@ def open_browser(port_num: int):
 if __name__ == "__main__":
     port = 8050
     Thread(target=open_browser, args=[port]).start()
-    app.app.run_server(
+    interaction.app.run_server(
         # Set debug false when deploy
         debug=True, port=port
     )

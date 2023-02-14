@@ -1,6 +1,5 @@
 from typing import List
 
-import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
 
@@ -89,13 +88,14 @@ def get_license_usage_table(license_data: LicenseUsage):
     Returns
     -------
      pd.DataFrame:
-        DataFrame for dbc.Table with the number of Cache Generation per Feature and the total number of Cache Generations
+        DataFrame for dbc.Table with the number of Cache Generation per Feature
+        and the total number of Cache Generations
     """
     data = license_data.get_license_usage_data()
 
     return pd.DataFrame(
-            {"Loader": data.feature_name, "Cache Generations": data.resource_id}
-        )
+        {"Loader": data.feature_name, "Cache Generations": data.resource_id}
+    )
 
 
 def get_multi_total_amount_table(session: DataSessions, idents):
