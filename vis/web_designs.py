@@ -340,7 +340,7 @@ def settings():
             dcc.Dropdown(
                 [],
                 "",
-                id="file-select",
+                id="file-select-feature",
                 className="settings-dropdown",
                 clearable=False,
             ),

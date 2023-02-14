@@ -14,7 +14,7 @@ def empty_fig():
     fig = px.scatter()
     fig.update_xaxes(showgrid=False, showticklabels=False, zeroline=False)
     fig.update_yaxes(showgrid=False, showticklabels=False, zeroline=False)
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
 
     return fig
 
@@ -50,7 +50,7 @@ def get_token_graph(session: DataSessions, graph_type: str) -> Figure:
             render_mode="webgl",
         )
 
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    fig.update_layout(xaxis_title="Time", yaxis_title="Token", legend_title="Products")
 
     return fig
 
@@ -69,7 +69,10 @@ def get_fpc_graph(session: DataSessions) -> Figure:
     """
     fig = px.bar(
         session.get_package_combination_percentage(), x="package_names", y="usage"
-    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    )
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", xaxis_title="Products", yaxis_title="Usage (%)"
+    )
     return fig
 
 
@@ -104,7 +107,7 @@ def get_cas_graph(session: DataSessions, graph_type: str) -> Figure:
             render_mode="webgl",
         )
 
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    fig.update_layout(xaxis_title="Time", yaxis_title="CAS")
 
     return fig
 
@@ -116,12 +119,14 @@ def get_cluster_id_comparison_graph(session: DataSessions, cluster_ids: list):
         )
     else:
         data = session.get_selector_comparison_data(cluster_ids, "cluster_id")
+
     fig = px.line(
         data,
         x="time",
         y=cluster_ids,
         render_mode="webgl",
-    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    )
+    fig.update_layout(xaxis_title="Time", yaxis_title="Token", legend_title="Idents")
     return fig
 
 
@@ -161,7 +166,7 @@ def get_multi_files_graph(
             render_mode="webgl",
         )
 
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    fig.update_layout(xaxis_title="Time", yaxis_title="Token", legend_title="Idents")
 
     return fig
 
@@ -189,5 +194,8 @@ def get_multi_cas_graph(session: DataSessions, idents) -> Figure:
         x="time",
         y=idents,
         render_mode="webgl",
-    ).update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    )
+
+    fig.update_layout(xaxis_title="Time", yaxis_title="CAS", legend_title="Idents")
+
     return fig
