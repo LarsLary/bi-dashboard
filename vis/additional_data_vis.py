@@ -1,9 +1,9 @@
 from typing import List
 
 import pandas as pd
-from dash import html
 
 from computation.data import DataSessions, LicenseUsage
+from dash import html
 
 
 def get_total_amount_table(session: DataSessions):

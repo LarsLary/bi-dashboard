@@ -1,7 +1,7 @@
 import dash_bootstrap_components as dbc
 import dash_uploader
-from dash import dash, dcc, html
 
+from dash import dash, dcc, html
 from vis.graph_vis import empty_fig
 
 
@@ -24,7 +24,7 @@ def header() -> html.Header:
                                 className="settings-icon",
                             )
                         ],
-                        className="button",
+                        className="settings-button",
                         id="open-settings-button",
                     )
                 ],
@@ -91,7 +91,7 @@ def header() -> html.Header:
                         src="assets/threedy_logo.svg",
                         height="43 px",
                         width="auto",
-                        style={"verticalAlign": "top"},
+                        style={"verticalAlign": "top", "margin-right": "15px"},
                     )
                 ],
                 className="col-2 logo",
@@ -193,18 +193,6 @@ def body_feature():
                         className="content",
                         id="content",
                     ),
-                    html.Div(  # info content on the right side: file data
-                        [
-                            html.Div("File Statistics:", className="text"),
-                            dbc.Table(
-                                overview_table,
-                                id="file-data-table",
-                                className="info-table",
-                            ),
-                        ],
-                        id="info-column",
-                        className="info-column",
-                    ),
                 ],
                 id="main",
                 className="main",
@@ -227,15 +215,27 @@ def tab_layout():
                 [
                     dcc.Tab(
                         label="Feature Usage",
-                        children=[body_feature()],
+                        children=body_feature(),
                         className="tab-right",
                         id="tab1",
                     ),
                     dcc.Tab(
-                        label="License Usage",
-                        children=[body_license()],
+                        label="Transcoder Usage",
+                        children=body_license(),
                         className="tab-left",
                         id="tab2",
+                    ),
+                    dcc.Tab(
+                        label="File Statistics",
+                        children=[
+                            dbc.Table(
+                                overview_table,
+                                className="table-statistics",
+                                id="file-data-table",
+                            )
+                        ],
+                        className="tab-middle",
+                        id="tab3",
                     ),
                 ],
                 id="tabs",
@@ -361,7 +361,7 @@ def settings():
                 className="settings-dropdown",
                 clearable=False,
             ),
-            html.H2(["Database"], className="settings-h2"),
+            html.H2(["Database"], className="settings-h3"),
             html.Div(["Reset:"], className="text"),
             html.Button("Reset", id="reset", className="button_reset"),
             html.Button(

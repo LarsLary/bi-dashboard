@@ -3,6 +3,7 @@
     --background-color: #181818;
     --background-dark-color: #121212;
     --background-light-color: #282828;
+    --background-grey-color: #4a4a4a;
 
     --bright-color: #edf0f1;
     --bright-opacity-15-color: rgba(237, 240, 241, 0.15);
@@ -12,7 +13,7 @@
     --accent-color-1: #FFFFFF;
 
     /* Shadows */
-    --default-shadow: black 0px 5px 10px;
+    --default-shadow: #2a2a2a 0px 5px 10px;
     --default-shadow-hover: var(--bright-opacity-45-color) 0px 5px 10px;
 
     /* Tabs */
@@ -25,14 +26,15 @@
 }
 
 header {
-    margin-top: var(--tab-height);
+    margin-left: -15px;
     padding-top: 1%;
     padding-bottom: 1%;
     display: flex;
     justify-content: space-between;
     align-items: center;
     color: var(--bright-color);
-    background-color: var(--background-color);
+    background-color: var(--background-grey-color);
+    width: 101vw;
 }
 
 body {
@@ -76,7 +78,7 @@ body {
     color: var(--accent-color-1);
     text-align: center;
     padding: 9px 25px;
-    background-color: var(--background-dark-color);
+    background-color: var(--background-grey-color);
     border: none;
     border-radius: 50px;
     cursor: pointer;
@@ -94,7 +96,7 @@ body {
     border-style: solid;
     border-width: 2px;
     border-radius: 50px;
-    border-color: var(--background-dark-color);
+    border-color: var(--background-grey-color);
 
 }
 
@@ -122,7 +124,7 @@ body {
 }
 
 .info-table-cell {
-    font-size: 14px;
+    font-size: 22px;
     border: none;
     color: var(--accent-color-1)
 }
@@ -151,6 +153,11 @@ body {
     text-align: center;
     padding: 10px;
     width: 36vw;
+
+}
+
+.dropdown {
+    margin-top: 12px;
 }
 
 .dropdown-small {
@@ -175,7 +182,7 @@ body {
 .progress-div {
     visibility: hidden;
     padding: 5% 10%;
-    background: var(--background-light-color);
+    background: var(--background-grey-color);
     width: 70%;
     position: absolute;
     top: 50%;
@@ -191,12 +198,24 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    border: 1px solid var(--bright-opacity-15-color);
-    border-radius: 10px;
     padding: 1vh;
     background-color: transparent;
     width: 100%;
     margin-top: 2vh;
+}
+
+.settings-button {
+    width: auto;
+    color: var(--accent-color-1);
+    text-align: center;
+    padding: 9px 25px;
+    background-color: var(--background-grey-color);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease 0s;
+    box-shadow: var(--default-shadow);
+    margin-left: 12px;
 }
 
 .settings-button:hover {
@@ -212,20 +231,25 @@ body {
 .settings-dropdown {
     text-align: center;
     margin-left: 10%;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     width: 8vw;
+    background:var(--background-grey-color) !important;
+    margin-top: 10px;
 }
 
 .settings-dropdown> .Select-menu-outer {
     width: 8vw;
+    background-color: var(--background-grey-color);
 }
+
 
 .settings-div {
     background: var(--background-light-color);
+    background-color: var(--background-grey-color);
     width: 10vw;
     height: 89vh;
     position: absolute;
-    top: 5%;
+    top: 9.5%;
     border: 1px solid var(--accent-color-1);
     border-left: 0;
     border-top-right-radius: 15px;
@@ -233,6 +257,7 @@ body {
     color: var(--accent-color-1);
     transition: left 0.5s linear;
     align-items: center;
+    z-index:1000;
 }
 
 .settings-h1 {
@@ -251,10 +276,18 @@ body {
     align-items: center;
 }
 
+.settings-h3 {
+    margin-top: 15%;
+    font-size: 20px;
+    color: var(--bright-color);
+    text-align: center;
+    align-items: center;
+}
+
 .button_reset {
     position: absolute;
     text-align: center;
-    margin-top: 10%;
+    margin-top: 20%;
     left: 50%;
     margin-right: -50%;
     transform: translate(-50%, -50%);
@@ -270,7 +303,7 @@ body {
     border: 1px solid var(--bright-color);
     border-radius: 20px;
     padding: 0.5vh 2vh 0.5vh 2vh;
-    background-color: var(--background-dark-color);
+    background-color: var(--background-grey-color);
     color: var(--bright-color);
     font-size: 16px;
 }
@@ -280,35 +313,35 @@ body {
 }
 
 .tab-right,
-.tab-left {
-    background-color: var(--background-color) !important;
-    border-color: var(--accent-color-1) !important;
-    color: var(--accent-color-1) !important;
+.tab-left,
+.tab-middle {
+    background-color: #2d2d2d !important;
+    border-color: #2d2d2d !important;
+    color: #868686; !important;
     padding: 5px 0 !important;
     text-align: center !important;
     vertical-align: middle !important;
     margin: 0;
+    font-strech: ultra-expanded;
 }
 
-.tab-right {
-    border-radius: 0 15px 15px 0;
-}
-
-.tab-left {
-    border-radius: 15px 0 0 15px;
-}
 
 .tab--selected {
+    background-color: var(--background-color) !important;
+    border-color: var(--background-color) !important;
     border-left: none !important;
     border-right: none !important;
+    text-decoration: underline;
+    text-underline-offset: 10px;
+    color: var(--accent-color-1) !important;
 }
 
-.tab:hover {
-    background-color: var(--bright-opacity-15-color) !important;
+.tab:hover:not(.tab--selected) {
+    background-color: rgba(237, 240, 241, 0.14) !important;
 }
 
 .reset_msg {
-    background-color: var(--background-light-color);
+    background-color: var(--background-grey-color);
     width: auto;
     height: auto;
     position: absolute;
@@ -331,11 +364,9 @@ body {
 }
 
 .tab-container {
-    position: fixed;
-    top: 0;
-    left: 0;
+    margin-left: -15px;
     z-index: 999;
-    width: 100%;
+    width: 101vw;
     height: var(--tab-height);
 }
 
@@ -348,13 +379,15 @@ body {
 .DateInput_input {
     border-radius: 50px;
     color: var(--accent-color-1);
-    background-color: var(--background-dark-color);
-    border-color: var(--background-dark-color);
+    background-color: var(--background-grey-color);
+    border-color: var(--background-grey-color);
+    box-shadow: var(--default-shadow);
 }
 
 .DateRangePickerInput:hover {
     box-shadow: var(--default-shadow-hover);
 }
+
 
 .DayPicker__withBorder,
 .DateRangePicker_picker,
@@ -366,8 +399,14 @@ body {
 .CalendarMonthGrid,
 .DayPickerKeyboardShortcuts_panel {
     color: var(--accent-color-1);
-    background-color: var(--background-dark-color);
+    background-color: var(--background-grey-color);
     border-color: var(--bright-opacity-15-color);
+    z-index: 1000;
+}
+
+.DateRangePickerInput_arrow_svg {
+    color: white !important;
+    fill: white !important;
 }
 
 .DayPicker_weekHeader {
@@ -381,11 +420,42 @@ body {
     border-color: var(--bright-opacity-15-color);
 }
 
-.Select-control,
-.Select-value,
-.Select-input,
 .has-value.Select--single>.Select-control .Select-value .Select-value-label,
 .is-open>.Select-control {
+    color: white;
+}
+
+.settings-dropdown .Select-control {
+    color: var(--accent-color-1);
+    background-color: var(--background-grey-color);
+    border-radius: 10px;
+    border-color: #808080;
+    border-width: thin;
+}
+
+.settings-dropdown .Select-value {
+    color: var(--accent-color-1);
+    background-color: var(--background-grey-color);
+    border-radius: 10px;
+    border-color: #808080;
+}
+
+/* formatiert die Auswahl beim Menü */
+.settings-dropdown .VirtualizedSelectFocusedOption {
+    color: var(--accent-color-1);
+    background-color: var(--background-grey-color);
+    border-radius: 10px;
+    border-color: var(--background-grey-color);
+}
+
+.dropdown .Select-control {
+    color: var(--accent-color-1);
+    background-color: var(--background-dark-color);
+    border-radius: 10px;
+    border-color: var(--background-dark-color);
+}
+
+.dropdown .Select-value {
     color: var(--accent-color-1);
     background-color: var(--background-dark-color);
     border-radius: 10px;
@@ -411,6 +481,13 @@ body {
     margin: 5px;
 }
 
+.table-statistics {
+    color: var(--accent-color-1);
+    width: 40%;
+    height: 200px;
+    margin: 40px;
+}
+
 .multi_additional {
     display: flex;
 }
@@ -418,8 +495,9 @@ body {
 
 .modal-content {
     color: var(--accent-color-1);
-    background-color: var(--background-color);
+    background-color: var(--background-grey-color);
     border-radius: 10px;
+    border-color: var(--bright-color);
 }
 
 .modal-header {
@@ -436,8 +514,8 @@ body {
 }
 
 .input {
-    background-color: var(--background-light-color) !important;
-    border-color: var(--background-light-color) !important;
+    background-color: var(--background-grey-color) !important;
+    border-color: var(--bright-color) !important;
     color: var(--accent-color-1) !important;
 }
 
@@ -454,7 +532,7 @@ body {
     text-align: center !important;
     vertical-align: middle !important;
     padding: 0 0 !important;
-    background-color: var(--background-dark-color);
+    background-color: var(--background-grey-color);
     border: none !important;
     border-radius: 50px !important;
     cursor: pointer;
@@ -476,7 +554,7 @@ body {
     border-radius: 50px !important;
     cursor: pointer;
     transition: all 0.3s ease 0s !important;
-    background-color: var(--background-dark-color);
+    background-color: var(--background-grey-color);
     box-shadow: var(--default-shadow-hover)
 }
 
