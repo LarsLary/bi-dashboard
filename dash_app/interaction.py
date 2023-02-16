@@ -524,10 +524,20 @@ def set_select_options(filename: str, filename_license: str, file_select_value: 
     Input("close-settings-button", "n_clicks"),
 )
 def settings(open_settings, close_settings):
-    """
-    Open/Close settings slider
-    """
-    if ctx.triggered_id == "open-settings-button":
-        return {"left": "0%"}
-    else:
+    triggered_id = ctx.triggered_id
+
+    if triggered_id == "open-settings-button":
+        if close_settings is None:
+            if open_settings % 2:
+                return {"left": "0%"}
+            else:
+                return {"left": "-20%"}
+        elif (open_settings + close_settings) % 2:
+            return {"left": "0%"}
+        else:
+            return {"left": "-20%"}
+
+    if triggered_id == "close-settings-button":
         return {"left": "-20%"}
+
+    return {"left": "-20%"}
