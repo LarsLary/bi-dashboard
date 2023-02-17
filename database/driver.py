@@ -157,7 +157,7 @@ def filter_duplicates(table_name: str):
         the name of the table
     """
     df = get_df_from_db(table_name)
-    df = df.drop_duplicates(ignore_index=True)
+    df = df.drop_duplicates(ignore_index=True, keep="last")
     df_to_sql_replace(df, table_name)
 
 

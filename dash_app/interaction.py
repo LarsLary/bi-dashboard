@@ -1,4 +1,5 @@
 import os
+import shutil
 from time import sleep
 from typing import Callable
 
@@ -16,6 +17,7 @@ import vis.prs_lib as prs_lib
 from computation.data import DataPings, DataSessions, LicenseUsage
 from computation.features import Features
 from dash_app import background, upload
+from dash_app.upload import convert_report_to_df
 from vis.additional_data_vis import get_license_usage_table
 from vis.web_designs import DROPDOWN_OPTIONS, tab_layout
 
@@ -29,6 +31,7 @@ long_callback_manager = DiskcacheLongCallbackManager(cache)
 app = Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     long_callback_manager=long_callback_manager,
+    prevent_initial_callbacks=True,
 )
 app.title = "Token Dashboard Threedy"
 app._favicon = "threedy_favicon.png"
@@ -39,7 +42,6 @@ du.configure_upload(app, UPLOAD_CACHE_PATH, use_upload_id=False)
 
 @app.long_callback(
     output=[
-        Output("confirm", "n_clicks"),
         Output("dash-uploader", "isCompleted"),
         Output("filename", "data"),
         Output("filename_license", "data"),
@@ -47,7 +49,7 @@ du.configure_upload(app, UPLOAD_CACHE_PATH, use_upload_id=False)
     inputs=[
         Input("dash-uploader", "isCompleted"),
         State("dash-uploader", "fileNames"),
-        Input("confirm", "n_clicks"),
+        Input("ident_num", "data"),
     ],
     running=[
         (Output("main", "style"), {"filter": "grayscale(100%)"}, {}),
@@ -64,10 +66,11 @@ du.configure_upload(app, UPLOAD_CACHE_PATH, use_upload_id=False)
         Output("progress_bar_header", "children"),
         Output("progress_message", "children"),
         Output("modal_ident", "is_open"),
+        Output("modal_header", "children"),
     ],
     prevent_inital_call=True,
 )
-def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
+def load_data(set_progress: Callable, is_com: bool, files: str, ident_num: int):
     """
     loads the data into the database
 
@@ -78,46 +81,54 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
         which indicates if the upload is completed
     files : String
         array of filenames (only first element used)
-    confirm : int
-        number of time the confirm button is clicked
+    ident_num : int
+        number of already added identifier
 
     Returns
     -------
-    int which represents the number of lines in the csv-file
-    String which represents the filename of the loaded csv-file
-    bool which indicates if the pop-up window is open (True) or closed (False)
-    Resets the clicks counter of the confirm button
-    Resets the upload
+    bool which indicates if a download is complete
+    str of the new feature file identifier
+    str of the new license file identifier
     """
 
     """Upload file"""
     if is_com:
         header_text = "Upload Report"
-        set_progress((100, "0/5", header_text, "Waiting for input", True))
 
-        while confirm is None:
-            sleep(0.1)
-
-        """Step 1: Read file"""
-        set_progress((0, "0/5", header_text, "Converting Data", False))
-        # without "sleep()" the user cannot see the progress on the website
-        sleep(1)
-
+        datagrams = convert_report_to_df(files[0])
         filename = files[0].split(".")[0]
+        names = []
+        for _, name in datagrams:
+            names.append(name)
 
-        datagram = upload.convert_report_to_df(files[0])
-
-        """If license file """
-        if "grant_id" in datagram.columns:  # if license file
-            return upload.prepare_license_data(
-                set_progress, header_text, datagram, filename
+        if ident_num == -1:
+            set_progress(
+                (
+                    100,
+                    "0/5",
+                    header_text,
+                    "Waiting for input",
+                    True,
+                    "Please enter an identifier for the data from this file: "
+                    + names[0],
+                )
             )
         else:
-            return upload.prepare_feature_data(
-                set_progress, header_text, datagram, filename
-            )
+            while ident_num < len(names):
+                set_progress(
+                    (
+                        100,
+                        "0/5",
+                        header_text,
+                        "Waiting for input",
+                        True,
+                        "Please enter an identifier for the data from this file: "
+                        + names[ident_num],
+                    )
+                )
 
-    return None, False, "", dash.no_update
+        return upload.prepare_data(set_progress, datagrams, filename, ident_num)
+    return dash.no_update, dash.no_update, dash.no_update
 
 
 @app.callback(
@@ -126,7 +137,7 @@ def load_data(set_progress: Callable, is_com: bool, files: str, confirm: int):
     Output(component_id="overview_cal_days", component_property="children"),
     Output(component_id="overview_metered_days", component_property="children"),
     Output(component_id="graphs-store", component_property="children"),
-    Output("additionals-store", "data"),
+    Output("additions-store", "data"),
     Output("select-date", "start_date"),
     Output("select-date", "end_date"),
     Input("select-date", "start_date"),
@@ -206,14 +217,14 @@ def update_output_div(
             graph_type = "bar" if (len(data_pings.get_metered_days()) <= 2) else "line"
 
         graphs = []
-        additionals = dict()
+        additions = dict()
         for option in DROPDOWN_OPTIONS:
             id = option["label"]
             fig, additional = background.select_graph(
                 id, sessions, file_select, graph_type
             )
             graphs.append(dcc.Graph(figure=fig, className="graph"))
-            additionals[str(option["value"])] = additional.to_dict()
+            additions[str(option["value"])] = additional.to_dict()
 
         """get values for file statistics"""
         driver.df_to_sql_replace(sessions.data, "current_data")
@@ -229,7 +240,7 @@ def update_output_div(
 
         """no data -> no updates for visuals"""
         graphs = dash.no_update
-        additionals = dash.no_update
+        additions = dash.no_update
 
         """set first and last date"""
         first_date = start_date
@@ -241,7 +252,7 @@ def update_output_div(
         cal_days,  # overview_table data
         metered_days,  # overview_table data
         graphs,  # export data
-        additionals,  # export data
+        additions,  # export data
         first_date,  # time interval data
         last_date,  # time interval data
     )
@@ -283,25 +294,25 @@ def update_output_license(filename: str):
     Output(component_id="graph_data1", component_property="children"),
     Output(component_id="graph_data2", component_property="children"),
     Input("graphs-store", "children"),
-    Input("additionals-store", "data"),
+    Input("additions-store", "data"),
     Input(component_id="dropdown1", component_property="value"),
     Input(component_id="dropdown2", component_property="value"),
     prevent_inital_call=True,
 )
 def update_dropdown(
     graphs: list,
-    additionals: dict,
+    additions: dict,
     drop1: int,
     drop2: int,
 ):
     graph1 = graphs[drop1]
     additional1 = dbc.Table.from_dataframe(
-        pd.DataFrame.from_dict(additionals[str(drop1)]), style={"text-align": "right"}
+        pd.DataFrame.from_dict(additions[str(drop1)]), style={"text-align": "right"}
     )
 
     graph2 = graphs[drop2]
     additional2 = dbc.Table.from_dataframe(
-        pd.DataFrame.from_dict(additionals[str(drop2)]), style={"text-align": "right"}
+        pd.DataFrame.from_dict(additions[str(drop2)]), style={"text-align": "right"}
     )
 
     return graph1, graph2, additional1, additional2
@@ -317,7 +328,7 @@ def update_dropdown(
     State("select-date", "start_date"),
     State("select-date", "end_date"),
     State("graphs-store", "children"),
-    State("additionals-store", "data"),
+    State("additions-store", "data"),
     State("license-store", "data"),
     prevent_initial_call=True,
 )
@@ -330,8 +341,8 @@ def export_data(
     start_date: str,
     end_date: str,
     graphs: list,
-    additionals: dict,
-    license: dict,
+    additions: dict,
+    license_data: dict,
 ):
     """Export presentation on button click."""
 
@@ -354,7 +365,7 @@ def export_data(
             name = option["label"]
 
             slide = prs.slides.add_slide(
-                prs.slide_layouts[2] if additionals[str(id)] else prs.slide_layouts[3]
+                prs.slide_layouts[2] if additions[str(id)] else prs.slide_layouts[3]
             )
             slide.shapes.title.text = name
 
@@ -363,15 +374,16 @@ def export_data(
             Figure(graphs[id]["props"]["figure"]).write_image(graph_path)
             prs_lib.set_graph(slide, graph_path)
 
-            prs_lib.set_table(slide, additionals[str(id)])
+            prs_lib.set_table(slide, additions[str(id)])
 
         # license usage slide
-        if license:
+        if license_data:
             slide = prs.slides.add_slide(prs.slide_layouts[4])
             slide.shapes.title.text = "License Usage"
-            prs_lib.set_table(slide, license)
+            prs_lib.set_table(slide, license_data)
 
         prs.save("./export/report.pptx")
+        return dcc.send_file("./export/report.pptx")
 
 
 @app.long_callback(
@@ -384,9 +396,9 @@ def export_data(
             {"top": "-10%"},
         )
     ],
-    # Uncomment the following line if the Database should NOT be reseted
+    # Uncomment the following line if the Database should NOT be resetted
     # after every reboot of the software
-    # prevent_initial_call=True,
+    prevent_initial_call=True,
 )
 def reset_db(clicks: int):
     """
@@ -401,49 +413,75 @@ def reset_db(clicks: int):
     dash.no_update
     """
     driver.drop_all()
+    shutil.rmtree(UPLOAD_CACHE_PATH)
     sleep(1.5)
     # TODO: check if db has been deleted, then return
     return dash.no_update
 
 
 @app.callback(
-    Output("ident", "value"), Input("ident", "value"), prevent_inital_call=True
+    Output("ident", "value"),
+    Output("ident_num", "data"),
+    Output("confirm", "n_clicks"),
+    Input("confirm", "n_clicks"),
+    Input("dash-uploader", "fileNames"),
+    State("ident", "value"),
+    State("ident_num", "data"),
+    State("all_file_check", "value"),
+    prevent_inital_call=True,
 )
-def data_name_input(name: str):
+def data_name_input(confirm, file, name, num, checkbox):
     """
-    Store given identifier in identifier table in database
+    Adds the input to the identifier table
 
     Parameters
     ----------
-    name : str
+    confirm: int
+        shows if the confirm button was clicked
+    file: str
+        not used, only for updates
+    name: String
         the name of the file identifier
+    num: int
+        The current amount of file identifier used for a compressed file
+    checkbox: list(str)
+        information if the identifier should be used for all files in a compressed
 
     Returns
     -------
     None
         Resets the input field
+    int
+        Number of already set identifier
+    None
+        Resets the confirm button
     """
+    if ctx.triggered_id == "dash-uploader":
+        return dash.no_update, 0, dash.no_update
+
     if name is not None:
+        while confirm is None:
+            sleep(0.1)
         driver.df_to_sql_append(
             pd.DataFrame({"FileIdentifier": [name], "Type": "unknown"}), "identifier"
         )
         driver.filter_duplicates("identifier")
-    return None
+        if "Use Identifier for all files" in checkbox:
+            return None, -1, None
+        return None, num + 1, None
+    return dash.no_update, dash.no_update, dash.no_update
 
 
 @app.callback(
     Output("file-select-feature", "options"),
     Output("file-select-feature", "value"),
-    Output("file-select-license", "options"),
-    Output("file-select-license", "value"),
     Output("cluster_id-select", "options"),
     Output("cluster_id-select", "value"),
     Input("filename", "data"),
-    Input("filename_license", "data"),
     Input("file-select-feature", "value"),
     prevent_inital_call=True,
 )
-def set_select_options(filename: str, filename_license: str, file_select_value: str):
+def set_select_options(filename: str, file_select_value: str):
     """
     Update select menus of cluster_ids, license_id and feature_id when a new file gets uploaded
     or another cluster_id or
@@ -452,7 +490,6 @@ def set_select_options(filename: str, filename_license: str, file_select_value: 
     Parameter
     ---------
     filename : str
-    filename_license : str
     file_select_value : str
 
     Returns
@@ -471,57 +508,51 @@ def set_select_options(filename: str, filename_license: str, file_select_value: 
         current selected cluster_id
     """
 
-    """if no file has been uploaded yet"""
-    feature_idents = []
-    license_idents = []
-    c_ids = []
-    cur_feature_file_id = dash.no_update
-    cur_license_file_id = dash.no_update
-    cur_c_id = dash.no_update
-
     if driver.check_if_table_exists("identifier"):
-        if ctx.triggered_id == "filename_license":
-            """no update for feature_file and cluster_id select options"""
-            feature_idents = dash.no_update
-            cur_feature_file_id = dash.no_update
-            c_ids = dash.no_update
-            cur_c_id = dash.no_update
+        idents = driver.get_df_from_db("identifier")
 
-            """set license identifier options and value"""
-            license_idents = background.get_license_identifier()
-            cur_license_file_id = license_idents[-1]
+        cur_c_id = "All Cluster-IDs"
+        c_ids = driver.get_df_from_db("cluster_ids")
+        if ctx.triggered_id == "filename":
+            idents = background.get_feature_identifier()
+            c_ids = c_ids[c_ids["identifier"] == idents[-1]]
+        else:
+            c_ids = c_ids[c_ids["identifier"] == file_select_value]
+        c_ids = c_ids["cluster_id"].to_numpy().tolist()
+        c_ids = ["All Cluster-IDs"] + c_ids
+        if ctx.triggered_id == "filename":
+            return idents, idents[-1], c_ids, cur_c_id
+        return dash.no_update, dash.no_update, c_ids, cur_c_id
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
-        else:  # triggered by file or cluster_id selection
-            """no update for license_file select options"""
-            license_idents = dash.no_update
-            cur_license_file_id = dash.no_update
 
-            """set feature identifier options and value"""
-            feature_idents = background.get_feature_identifier()
-            if ctx.triggered_id == "filename":
-                cur_feature_file_id = background.get_last_identifier()
-            else:
-                cur_feature_file_id = file_select_value
+@app.callback(
+    Output("file-select-license", "options"),
+    Output("file-select-license", "value"),
+    Input("filename_license", "data"),
+    prevent_inital_callback=True,
+)
+def set_license_ops(filename: str):
+    """
+    Parameters
+    ----------
+    filename: str
+        not used, only for updates
 
-            """set cluster_id identifier options and value"""
-            cur_c_id = "All Cluster-IDs"
-            c_ids = background.get_cluster_ids_of(cur_feature_file_id)
-            c_ids = ["All Cluster-IDs"] + c_ids
-
-    return (
-        feature_idents,  # file-select-feature
-        cur_feature_file_id,  # file-select-feature
-        license_idents,  # file-select-license
-        cur_license_file_id,  # file-select-license
-        c_ids,  # cluster_id-select
-        cur_c_id,  # cluster_id-select
-    )
+    Returns
+    -------
+    """
+    if ctx.triggered_id == "filename_license":
+        idents = background.get_license_identifier()
+        return idents, idents[len(idents) - 1]
+    return dash.no_update, dash.no_update
 
 
 @app.callback(
     Output("settings-div", "style"),
     Input("open-settings-button", "n_clicks"),
     Input("close-settings-button", "n_clicks"),
+    prevent_inital_call=True,
 )
 def settings(open_settings, close_settings):
     triggered_id = ctx.triggered_id

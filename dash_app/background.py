@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Union
 
 import pandas as pd
 
@@ -50,7 +51,11 @@ def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
     return data
 
 
-def get_overview_table(data_pings: DataPings, file_identifier: str, cluster_id: str):
+def get_overview_table(
+    data_pings: Union[None, DataPings],
+    file_identifier: str,
+    cluster_id: Union[None, str],
+):
     """
     Get overview table data.
 
@@ -144,8 +149,14 @@ def get_license_identifier():
     idents = []
     if driver.check_if_table_exists("identifier"):
         idents = driver.get_df_from_db("identifier")
-        idents = idents[idents["Type"] == "License"]["FileIdentifier"]
-        idents = idents.to_numpy().tolist()
+        idents = (
+            idents[
+                (idents["Type"] == "License") | (idents["Type"] == "Feature, License")
+            ]["FileIdentifier"]
+            .to_numpy(dtype=str)
+            .flatten()
+            .tolist()
+        )
     return idents
 
 
@@ -161,8 +172,14 @@ def get_feature_identifier():
     idents = []
     if driver.check_if_table_exists("identifier"):
         idents = driver.get_df_from_db("identifier")
-        idents = idents[idents["Type"] == "Feature"]["FileIdentifier"]
-        idents = idents.to_numpy().tolist()
+        idents = (
+            idents[
+                (idents["Type"] == "Feature") | (idents["Type"] == "Feature, License")
+            ]["FileIdentifier"]
+            .to_numpy(dtype=str)
+            .flatten()
+            .tolist()
+        )
     return idents
 
 
@@ -219,12 +236,7 @@ def select_graph(
     """
     """create empty additional data field in case it isn't needed for visualisation"""
     additional = pd.DataFrame()
-    idents = driver.get_df_from_db("identifier")
-    idents = (
-        idents[idents["Type"] == "Feature"]["FileIdentifier"]
-        .to_numpy(dtype=str)
-        .flatten()
-    )
+    idents = get_feature_identifier()
 
     """select graph and additional data depending on parameter menu_entry"""
     if menu_entry == "Token Consumption":

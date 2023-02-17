@@ -229,6 +229,8 @@ body {
 }
 
 .settings-dropdown {
+    border: var(--bright-color) 1px solid;
+    border-radius: 10px;
     text-align: center;
     margin-left: 10%;
     margin-bottom: 10px;
@@ -250,6 +252,7 @@ body {
     height: 89vh;
     position: absolute;
     top: 9.5%;
+    left: -20%;
     border: 1px solid var(--accent-color-1);
     border-left: 0;
     border-top-right-radius: 15px;
@@ -346,6 +349,7 @@ body {
     height: auto;
     position: absolute;
     font-size: 15vw;
+    top: -10%;
     left: 50%;
     padding: 10px;
     transform: translate(-50%, -50%);
@@ -355,6 +359,10 @@ body {
     text-align: center;
     transition: top 0.5s linear;
     z-index: 10000;
+}
+
+.modal_title_text {
+    font-size: 23px;
 }
 
 /* Default classes used by Dash */

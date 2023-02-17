@@ -1,7 +1,7 @@
 import dash_bootstrap_components as dbc
 import dash_uploader
-
 from dash import dash, dcc, html
+
 from vis.graph_vis import empty_fig
 
 
@@ -38,23 +38,50 @@ def header() -> html.Header:
                                 text="Upload Report",
                                 text_completed="Upload Report. Latest: ",
                                 id="dash-uploader",
-                                filetypes=["csv"],
+                                filetypes=["csv", "zip"],
                             )
                         ]
                     ),
                     dbc.Modal(
                         [
                             dbc.ModalHeader(
-                                dbc.ModalTitle("Please enter a file identifier")
+                                dbc.ModalTitle(
+                                    html.Div(
+                                        [
+                                            html.H1(
+                                                (
+                                                    "Please enter an identifier for the"
+                                                    " data from this file: "
+                                                ),
+                                                id="modal_header",
+                                                className="modal_title_text",
+                                            ),
+                                            html.Div(
+                                                (
+                                                    " This Identifier will be used to"
+                                                    " distinguish or associate data"
+                                                    " from different files."
+                                                ),
+                                            ),
+                                        ]
+                                    )
+                                )
                             ),
                             dbc.ModalBody(
-                                dbc.Input(
-                                    id="ident",
-                                    placeholder="identifier",
-                                    type="text",
-                                    debounce=True,
-                                    className="input",
-                                )
+                                [
+                                    dbc.Input(
+                                        id="ident",
+                                        placeholder="identifier",
+                                        type="text",
+                                        debounce=True,
+                                        className="input",
+                                    ),
+                                    dcc.Checklist(
+                                        ["Use Identifier for all files"],
+                                        [],
+                                        id="all_file_check",
+                                    ),
+                                ]
                             ),
                             dbc.ModalFooter(
                                 html.Button("Confirm", id="confirm", className="button")
@@ -259,7 +286,6 @@ def body_license():
                     dbc.Col(html.Div([""], id="graph_data3", className="graph_data")),
                 ]
             ),
-            dcc.Store(id="filename_license", data=""),
         ]
     )
 
@@ -309,6 +335,7 @@ def stores():
     return html.Div(
         [
             dcc.Store(id="filename", data=""),
+            dcc.Store(id="filename_license", data=""),
             html.Div(
                 children=[
                     dcc.Graph(figure=empty_fig()),
@@ -318,8 +345,9 @@ def stores():
                 id="graphs-store",
                 style={"display": "none"},
             ),
-            dcc.Store(id="additionals-store", data={"0": {}, "1": {}}),
+            dcc.Store(id="additions-store", data={"0": {}, "1": {}}),
             dcc.Store(id="license-store", data={}),
+            dcc.Store(id="ident_num", data=0),
         ]
     )
 
