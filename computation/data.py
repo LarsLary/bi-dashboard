@@ -801,7 +801,12 @@ class DataSessions:
 
     def get_multi_total_token_amount(self, idents):
         """
-        Compute the total token usage.
+        Parameters
+        ----------
+        idents: list or array
+            containing all file identifier
+
+        Compute the total token amount of multiple files.
 
         Returns
         -------
