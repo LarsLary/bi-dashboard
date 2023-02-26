@@ -116,7 +116,29 @@ def get_multi_total_amount_table(session: DataSessions, idents):
     dbc.Table
         Table with total token amount for each product and the total token amount
     """
-    data = session.get_multi_total_token_amount(idents)
+    data = session.get_multi_total_token_amount(idents, "identifier")
+
+    return apply_thousand_seperator(data)
+
+
+def get_cluster_id_table(session: DataSessions, multi=False):
+    """
+    Parameter
+    ---------
+    session:
+         DataSession which represents the session which should be used for computation
+    multi: bool
+        True if cluster_id should be aggregated over all file identifier
+
+    Returns
+    -------
+    dbc.Table
+        Table with total token amount for each product and the total token amount
+        separated for each cluster_id
+    """
+    data = session.get_multi_total_token_amount(
+        session.get_cluster_ids(), "cluster_id", multi
+    )
 
     return apply_thousand_seperator(data)
 

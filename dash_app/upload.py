@@ -33,7 +33,7 @@ def convert_report_to_df(name: str):
 
 
 def prepare_data(
-    set_progress: Callable, datagrams: list, filename: str, ident_num: int
+    set_progress: Callable, datagrams: list, filename: str, ident_num: int, ident_names
 ):
     """
     Prepare data of feature file after upload of a feature file
@@ -70,6 +70,8 @@ def prepare_data(
         else:
             ident_num = ident_num - 1
 
+        ident_name = ident_names[len(ident_names) - (1 + ident_num)]
+
         header_text = "Uploading " + name
         set_progress((0, "0/5", header_text, "Converting Data", False, ""))
         sleep(0.5)
@@ -79,13 +81,16 @@ def prepare_data(
             sleep(0.5)
 
             table = driver.get_df_from_db("identifier")
-            if table.loc[len(table.index) - (1 + ident_num), "Type"] == "unknown":
-                table.loc[len(table.index) - (1 + ident_num), "Type"] = "License"
+            if (
+                table.loc[table["FileIdentifier"] == ident_name, "Type"].item()
+                == "unknown"
+            ):
+                table.loc[table["FileIdentifier"] == ident_name, "Type"] = "License"
             else:
                 table.loc[
-                    len(table.index) - (1 + ident_num), "Type"
+                    table["FileIdentifier"] == ident_name, "Type"
                 ] = "Feature, License"
-            ident = table.loc[len(table.index) - (1 + ident_num), "FileIdentifier"]
+            ident = ident_name
             driver.df_to_sql_replace(table, "identifier")
 
             license_data = datagram
@@ -132,14 +137,17 @@ def prepare_data(
             df_pings = data_pings.data.copy()
 
             table = driver.get_df_from_db("identifier").copy()
-            if table.loc[len(table.index) - (1 + ident_num), "Type"] == "unknown":
-                table.loc[len(table.index) - (1 + ident_num), "Type"] = "Feature"
+            if (
+                table.loc[table["FileIdentifier"] == ident_name, "Type"].item()
+                == "unknown"
+            ):
+                table.loc[table["FileIdentifier"] == ident_name, "Type"] = "Feature"
             else:
                 table.loc[
-                    len(table.index) - (1 + ident_num), "Type"
+                    table["FileIdentifier"] == ident_name, "Type"
                 ] = "Feature, License"
 
-            ident = table.loc[len(table.index) - (1 + ident_num), "FileIdentifier"]
+            ident = ident_name
             driver.df_to_sql_replace(table, "identifier")
 
             df_session["identifier"] = ident

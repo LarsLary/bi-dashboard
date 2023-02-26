@@ -7,6 +7,7 @@ import database.driver as driver
 from computation.data import DataPings, DataSessions
 from vis.additional_data_vis import (
     get_cas_statistics,
+    get_cluster_id_table,
     get_multi_total_amount_table,
     get_package_combination_table,
     get_total_amount_table,
@@ -213,7 +214,11 @@ def set_type_of_last_identifier(type_name: str):
 
 
 def select_graph(
-    menu_entry: str, session: DataSessions, identifier: str, graph_type: str
+    menu_entry: str,
+    session: DataSessions,
+    identifier: str,
+    graph_type: str,
+    multi_cluster: bool,
 ):
     """
     Parameters
@@ -222,6 +227,8 @@ def select_graph(
     session : pd.Dataframe which represents the datapoints used for the selected graph
     identifier : str which represents the identifier of the currently chosen file
     graph_type: either "bar" or "line"
+    multi_cluster: bool
+        True if all data should be aggregated over all files
 
     Returns
     -------
@@ -252,8 +259,13 @@ def select_graph(
         additional = get_cas_statistics(session)
 
     elif menu_entry == "Cluster-ID Comparison":
-        c_ids = get_cluster_ids_of(identifier)
-        fig = get_cluster_id_comparison_graph(session, c_ids)
+        if multi_cluster:
+            c_ids = session.get_cluster_ids()
+        else:
+            c_ids = get_cluster_ids_of(identifier)
+        c_ids = list(dict.fromkeys(c_ids))
+        fig = get_cluster_id_comparison_graph(session, c_ids, multi_cluster)
+        additional = get_cluster_id_table(session, multi_cluster)
 
     elif menu_entry == "File Comparison (Token)":
         fig = get_multi_files_graph(session, idents, graph_type=graph_type)

@@ -496,10 +496,11 @@ class DataSessions:
         feat_names.append("total")
         data["block_start"] = pd.to_datetime(data["block_start"])
 
-        if multi_files:
+        if multi_files and (not cluster_id_comparison):
             groupers = [pd.Grouper(key="block_start", freq=interval), "identifier"]
         elif cluster_id_comparison:
-            data = data[data["identifier"] == self.file_selector]
+            if not multi_files:
+                data = data[data["identifier"] == self.file_selector]
             groupers = [pd.Grouper(key="block_start", freq=interval), "cluster_id"]
         else:
             data = data[data["identifier"] == self.file_selector]
@@ -525,14 +526,13 @@ class DataSessions:
             for hours use: "[num of hours]H"
             for days use: "[num of days]D"
             full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+        multi_files : bool
+            indicator if files should be grouped by identifier or not
 
         Returns
         -------
         pd.DataFrame
             data frame containing most active sessions (within 15 min) per given interval
-        multi_files : bool
-            indicator if files should be grouped by identifier or not
-
 
         Raises
         ------
@@ -701,7 +701,7 @@ class DataSessions:
         return pd.DataFrame(cas_statistics)
 
     def get_selector_comparison_data(
-        self, group_by: list, group_in: str, interval: str = "D"
+        self, group_by: list, group_in: str, interval: str = "D", multi_cluster=False
     ):
         """Return total token consumption for comparison
 
@@ -717,6 +717,8 @@ class DataSessions:
             for hours use: "[num of hours]H"
             for days use: "[num of days]D"
             full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+        multi_cluster:
+            True if cluster_id should be aggregated over all file identifier
 
         Returns
         -------
@@ -731,9 +733,14 @@ class DataSessions:
         if group_in == "identifier":
             data = self.get_token_consumption(interval, multi_files=True).copy()
         elif group_in == "cluster_id":
-            data = self.get_token_consumption(
-                interval, cluster_id_comparison=True
-            ).copy()
+            if multi_cluster:
+                data = self.get_token_consumption(
+                    interval, multi_files=True, cluster_id_comparison=True
+                ).copy()
+            else:
+                data = self.get_token_consumption(
+                    interval, cluster_id_comparison=True
+                ).copy()
         else:
             raise Exception("Method has not been implemented for group_in=", group_in)
         dates = pd.DataFrame(
@@ -746,15 +753,14 @@ class DataSessions:
                 drops = ["identifier"]
             else:
                 drops = [group_in]
-                drops.extend(self.features["keyword"].tolist())
             table.drop(
                 drops,
                 axis="columns",
                 inplace=True,
             )
-            if group_in == "identifier":
-                for name in self.features["keyword"].tolist():
-                    table.rename(columns={name: x + "-" + name}, inplace=True)
+
+            for name in self.features["keyword"].tolist():
+                table.rename(columns={name: x + "-" + name}, inplace=True)
 
             table.rename(columns={"total": x}, inplace=True)
             dates = pd.merge(dates, table, on="time", how="outer")
@@ -799,12 +805,18 @@ class DataSessions:
         dates.fillna(0, inplace=True)
         return dates
 
-    def get_multi_total_token_amount(self, idents):
+    def get_multi_total_token_amount(
+        self, groups: list, definer: str, multi_cluster=False
+    ):
         """
         Parameters
         ----------
-        idents: list or array
-            containing all file identifier
+        groups: list or array
+            containing all file identifier or cluster ids
+        definer: str
+            identifier or cluster_id
+        multi_cluster:
+            True if cluster_id should be aggregated over all file identifier
 
         Compute the total token amount of multiple files.
 
@@ -813,26 +825,28 @@ class DataSessions:
         pd.Dataframe:
                 total token usage for each product and total token usage
         """
-        data = self.get_selector_comparison_data(idents, "identifier", interval="15min")
+        data = self.get_selector_comparison_data(
+            groups, definer, interval="15min", multi_cluster=multi_cluster
+        )
         cols_ = self.features["keyword"].tolist()
 
-        columns = ["identifier"]
+        columns = [definer]
         columns.extend(cols_)
         columns.append("total")
         df = pd.DataFrame([], columns=columns)
-        for ident in idents:
+        for elem in groups:
             cols = []
             for col in cols_:
-                cols.append(ident + "-" + col)
-            cols.append(ident)
+                cols.append(elem + "-" + col)
+            cols.append(elem)
             data_ident = data[cols].sum()
-            data_ident = pd.concat([pd.Series([ident]), data_ident])
+            data_ident = pd.concat([pd.Series([elem]), data_ident])
             data_ident = pd.DataFrame([data_ident.values], columns=columns)
             df = pd.concat([df, data_ident], ignore_index=True)
 
         sums = ["total"]
         for column in columns:
-            if column != "identifier":
+            if column != definer:
                 sums.append(df[column].sum())
         data_sums = pd.DataFrame([sums], columns=columns)
         df = pd.concat([df, data_sums], ignore_index=True)
