@@ -50,6 +50,7 @@ du.configure_upload(app, UPLOAD_CACHE_PATH, use_upload_id=False)
         Input("dash-uploader", "isCompleted"),
         State("dash-uploader", "fileNames"),
         Input("ident_num", "data"),
+        State("ident_names", "data"),
     ],
     running=[
         (Output("main", "style"), {"filter": "grayscale(100%)"}, {}),
@@ -70,7 +71,9 @@ du.configure_upload(app, UPLOAD_CACHE_PATH, use_upload_id=False)
     ],
     prevent_inital_call=True,
 )
-def load_data(set_progress: Callable, is_com: bool, files: str, ident_num: int):
+def load_data(
+    set_progress: Callable, is_com: bool, files: str, ident_num: int, ident_names
+):
     """
     loads the data into the database
 
@@ -127,7 +130,9 @@ def load_data(set_progress: Callable, is_com: bool, files: str, ident_num: int):
                     )
                 )
 
-        return upload.prepare_data(set_progress, datagrams, filename, ident_num)
+        return upload.prepare_data(
+            set_progress, datagrams, filename, ident_num, ident_names
+        )
     return dash.no_update, dash.no_update, dash.no_update
 
 
@@ -146,6 +151,7 @@ def load_data(set_progress: Callable, is_com: bool, files: str, ident_num: int):
     Input(component_id="graph-type", component_property="value"),
     Input("file-select-feature", "value"),
     Input("cluster_id-select", "value"),
+    Input("multi_cluster", "value"),
     prevent_inital_call=True,
 )
 def update_output_div(
@@ -155,6 +161,7 @@ def update_output_div(
     graph_type: str,
     file_select: str,
     c_id_select: str,
+    multi_cluster: str,
 ):
     """
     Parameters
@@ -167,6 +174,8 @@ def update_output_div(
     graph_type : String, either "bar", "line" or "auto"
     file_select: String
     c_id_select: String
+    multi_cluster: bool
+        True if cluster_id should be aggregated over all file identifier
 
     main computation of the frontend
 
@@ -218,10 +227,14 @@ def update_output_div(
 
         graphs = []
         additions = dict()
+        if "Aggregate Cluster ID data" in multi_cluster:
+            multi_cluster_bool = True
+        else:
+            multi_cluster_bool = False
         for option in DROPDOWN_OPTIONS:
-            id = option["label"]
+            dropdown_id = option["label"]
             fig, additional = background.select_graph(
-                id, sessions, file_select, graph_type
+                dropdown_id, sessions, file_select, graph_type, multi_cluster_bool
             )
             graphs.append(dcc.Graph(figure=fig, className="graph"))
             additions[str(option["value"])] = additional.to_dict()
@@ -361,20 +374,22 @@ def export_data(
 
         # graph & statistic slides
         for option in DROPDOWN_OPTIONS:
-            id = option["value"]
+            dropdown_id = option["value"]
             name = option["label"]
 
             slide = prs.slides.add_slide(
-                prs.slide_layouts[2] if additions[str(id)] else prs.slide_layouts[3]
+                prs.slide_layouts[2]
+                if additions[str(dropdown_id)]
+                else prs.slide_layouts[3]
             )
             slide.shapes.title.text = name
 
             # save and set graph
-            graph_path = "./export/graphs/" + str(id) + ".png"
-            Figure(graphs[id]["props"]["figure"]).write_image(graph_path)
+            graph_path = "./export/graphs/" + str(dropdown_id) + ".png"
+            Figure(graphs[dropdown_id]["props"]["figure"]).write_image(graph_path)
             prs_lib.set_graph(slide, graph_path)
 
-            prs_lib.set_table(slide, additions[str(id)])
+            prs_lib.set_table(slide, additions[str(dropdown_id)])
 
         # license usage slide
         if license_data:
@@ -423,14 +438,16 @@ def reset_db(clicks: int):
     Output("ident", "value"),
     Output("ident_num", "data"),
     Output("confirm", "n_clicks"),
+    Output("ident_names", "data"),
     Input("confirm", "n_clicks"),
     Input("dash-uploader", "fileNames"),
     State("ident", "value"),
     State("ident_num", "data"),
     State("all_file_check", "value"),
+    State("ident_names", "data"),
     prevent_inital_call=True,
 )
-def data_name_input(confirm, file, name, num, checkbox):
+def data_name_input(confirm, file, name, num, checkbox, ident_names):
     """
     Adds the input to the identifier table
 
@@ -457,7 +474,12 @@ def data_name_input(confirm, file, name, num, checkbox):
         Resets the confirm button
     """
     if ctx.triggered_id == "dash-uploader":
-        return dash.no_update, 0, dash.no_update
+        return dash.no_update, 0, dash.no_update, None
+
+    if ident_names is None:
+        name_lst = []
+    else:
+        name_lst = ident_names
 
     if name is not None:
         while confirm is None:
@@ -465,11 +487,12 @@ def data_name_input(confirm, file, name, num, checkbox):
         driver.df_to_sql_append(
             pd.DataFrame({"FileIdentifier": [name], "Type": "unknown"}), "identifier"
         )
-        driver.filter_duplicates("identifier")
+        driver.filter_duplicates("identifier", identifier=["FileIdentifier"])
+        name_lst.append(name)
         if "Use Identifier for all files" in checkbox:
-            return None, -1, None
-        return None, num + 1, None
-    return dash.no_update, dash.no_update, dash.no_update
+            return None, -1, None, name_lst
+        return None, num + 1, None, name_lst
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 @app.callback(

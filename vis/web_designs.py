@@ -341,6 +341,9 @@ def stores():
                     dcc.Graph(figure=empty_fig()),
                     dcc.Graph(figure=empty_fig()),
                     dcc.Graph(figure=empty_fig()),
+                    dcc.Graph(figure=empty_fig()),
+                    dcc.Graph(figure=empty_fig()),
+                    dcc.Graph(figure=empty_fig()),
                 ],
                 id="graphs-store",
                 style={"display": "none"},
@@ -348,6 +351,7 @@ def stores():
             dcc.Store(id="additions-store", data={"0": {}, "1": {}}),
             dcc.Store(id="license-store", data={}),
             dcc.Store(id="ident_num", data=0),
+            dcc.Store(id="ident_names", data=0),
         ]
     )
 
@@ -380,6 +384,11 @@ def settings():
                 id="cluster_id-select",
                 className="settings-dropdown",
                 clearable=False,
+            ),
+            dcc.Checklist(
+                ["Aggregate Cluster ID data"],
+                [],
+                id="multi_cluster",
             ),
             html.Div(["Select a license file:"], className="text"),
             dcc.Dropdown(

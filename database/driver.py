@@ -147,7 +147,7 @@ def get_df_from_db(table_name: str) -> pd.DataFrame:
     return df
 
 
-def filter_duplicates(table_name: str):
+def filter_duplicates(table_name: str, identifier=None):
     """
     Filters all duplicates in a database table
 
@@ -155,9 +155,14 @@ def filter_duplicates(table_name: str):
     ---------
     table_name: String
         the name of the table
+    identifier: list
+        a subset of the table which should be used to filter the duplicates
     """
+
     df = get_df_from_db(table_name)
-    df = df.drop_duplicates(ignore_index=True, keep="last")
+    if identifier is None:
+        identifier = df.columns
+    df = df.drop_duplicates(subset=identifier, ignore_index=True, keep="last")
     df_to_sql_replace(df, table_name)
 
 
