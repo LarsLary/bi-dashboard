@@ -142,9 +142,10 @@ DROPDOWN_OPTIONS = [
     {"label": "Token Consumption", "value": 0},
     {"label": "Concurrent Active Sessions", "value": 1},
     {"label": "Product Usage", "value": 2},
-    {"label": "Cluster-ID Comparison", "value": 3},
-    {"label": "File Comparison (Token)", "value": 4},
-    {"label": "File Comparison (CAS)", "value": 5},
+    {"label": "Cluster-ID Comparison (Token)", "value": 3},
+    {"label": "Cluster-ID Comparison (CAS)", "value": 4},
+    {"label": "File Comparison (Token)", "value": 5},
+    {"label": "File Comparison (CAS)", "value": 6},
 ]
 
 
