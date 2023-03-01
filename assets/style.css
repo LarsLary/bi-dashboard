@@ -1,7 +1,7 @@
 * {
     /* Colors */
     --background-color: #181818;
-    --background-dark-color: #121212;
+    --background-dark-color: #080808;
     --background-light-color: #282828;
     --background-grey-color: #4a4a4a;
 
@@ -34,7 +34,7 @@ header {
     align-items: center;
     color: var(--bright-color);
     background-color: var(--background-grey-color);
-    width: 101vw;
+    width: 100vw;
 }
 
 body {
@@ -73,7 +73,8 @@ body {
     align-items: center;
 }
 
-.button, .button_reset {
+.button,
+.button_reset {
     width: auto;
     color: var(--accent-color-1);
     text-align: center;
@@ -86,7 +87,8 @@ body {
     box-shadow: var(--default-shadow);
 }
 
-.button:hover, .button_reset:hover {
+.button:hover,
+.button_reset:hover {
     box-shadow: var(--default-shadow-hover);
 }
 
@@ -235,11 +237,11 @@ body {
     margin-left: 10%;
     margin-bottom: 10px;
     width: 8vw;
-    background:var(--background-grey-color) !important;
+    background: var(--background-grey-color) !important;
     margin-top: 10px;
 }
 
-.settings-dropdown> .Select-menu-outer {
+.settings-dropdown>.Select-menu-outer {
     width: 8vw;
     background-color: var(--background-grey-color);
 }
@@ -260,7 +262,7 @@ body {
     color: var(--accent-color-1);
     transition: left 0.5s linear;
     align-items: center;
-    z-index:1000;
+    z-index: 1000;
 }
 
 .settings-h1 {
@@ -320,7 +322,8 @@ body {
 .tab-middle {
     background-color: #2d2d2d !important;
     border-color: #2d2d2d !important;
-    color: #868686; !important;
+    color: #868686;
+    !important;
     padding: 5px 0 !important;
     text-align: center !important;
     vertical-align: middle !important;
@@ -374,7 +377,7 @@ body {
 .tab-container {
     margin-left: -15px;
     z-index: 999;
-    width: 101vw;
+    width: 100vw;
     height: var(--tab-height);
 }
 

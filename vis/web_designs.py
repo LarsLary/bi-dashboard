@@ -22,9 +22,10 @@ def header() -> html.Header:
                                 src="assets/settings-icon.svg",
                                 height="43px",
                                 className="settings-icon",
-                            )
+                            ),
                         ],
                         className="settings-button",
+                        title="Open the settings",
                         id="open-settings-button",
                     )
                 ],
@@ -40,7 +41,8 @@ def header() -> html.Header:
                                 id="dash-uploader",
                                 filetypes=["csv", "zip"],
                             )
-                        ]
+                        ],
+                        title="Upload a report file or zip folder",
                     ),
                     dbc.Modal(
                         [
@@ -107,7 +109,12 @@ def header() -> html.Header:
             ),
             html.Div(
                 [
-                    html.Button("Export", id="export", className="button"),
+                    html.Button(
+                        "Export",
+                        id="export",
+                        className="button",
+                        title="Create a PowerPoint presentation",
+                    ),
                     dcc.Download(id="exportFunc"),
                 ],
                 className="col-2 center",
