@@ -9,6 +9,7 @@ import database.driver as driver
 from computation.data import DataPings, DataSessions
 from computation.features import Features
 from computation.file_imports import upload_csv, upload_zip
+from csv_config import feature_map, license_map
 
 UPLOAD_CACHE_PATH = os.path.abspath("./cache/upload_data/")
 
@@ -76,9 +77,10 @@ def prepare_data(
         set_progress((0, "0/5", header_text, "Converting Data", False, ""))
         sleep(0.5)
 
-        if "grant_id" in datagram.columns:
+        if license_map["grant_id"] in datagram.columns:
             set_progress((60, "3/5", header_text, "Loading License Data", False, ""))
             sleep(0.5)
+            datagram = rename_columns(datagram, license_map)
 
             table = driver.get_df_from_db("identifier")
             if (
@@ -113,6 +115,7 @@ def prepare_data(
                 )
             )
             sleep(0.5)
+            datagram = rename_columns(datagram, feature_map)
 
             # 2. Get Features
             features = Features().get_data_features()
@@ -172,3 +175,24 @@ def prepare_data(
             feature_filename = filename
 
     return False, feature_filename, license_filename
+
+
+def rename_columns(df: pd.DataFrame, column_names_map: dict):
+    """
+    Rename columns of a dataframe according to the feature map
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe to rename
+    column_names_map : dict
+        map of old column names to new column names
+
+    Returns
+    -------
+    pd.DataFrame with renamed columns
+    """
+    for new_name, old_name in column_names_map.items():
+        if old_name in df.columns:
+            df = df.rename(columns={old_name: new_name})
+    return df
