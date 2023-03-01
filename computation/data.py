@@ -514,7 +514,12 @@ class DataSessions:
 
         return data
 
-    def get_cas(self, interval: str = "D", multi_files: bool = False):
+    def get_cas(
+        self,
+        interval: str = "D",
+        multi_files: bool = False,
+        cluster_id_comparison: bool = False,
+    ):
         """
         Get number of concurrent active sessions by date.
 
@@ -528,6 +533,8 @@ class DataSessions:
             full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
         multi_files : bool
             indicator if files should be grouped by identifier or not
+        cluster_id_comparison : bool
+            indicator if files should be grouped by cluster_ids or not
 
         Returns
         -------
@@ -543,9 +550,21 @@ class DataSessions:
             raise Exception("Method only works with self.block_length == 300")
 
         # remove sessions, that don't include one of the 15min-timestamps
-        data = self.data
-        if multi_files:
+        data = self.data.copy()
+        if multi_files and (not cluster_id_comparison):
             s = data[["block_start", "identifier"]].copy()
+            s = s[
+                (s["block_start"].str[14:16].astype("int") % 15 >= 10)
+                | (
+                    (s["block_start"].str[14:16].astype("int") % 15 == 0)
+                    & (s["block_start"].str[17:19].astype("int") == 0)
+                )
+            ]
+            data = s
+        elif cluster_id_comparison:
+            if not multi_files:
+                data = data[data["identifier"] == self.file_selector]
+            s = data[["block_start", "cluster_id"]].copy()
             s = s[
                 (s["block_start"].str[14:16].astype("int") % 15 >= 10)
                 | (
@@ -574,8 +593,10 @@ class DataSessions:
         data["amount"] = 1
 
         # amount of sessions that are active at 15min-timestamps
-        if multi_files:
+        if multi_files and (not cluster_id_comparison):
             groupers = [pd.Grouper(key="time", freq="15min"), "identifier"]
+        elif cluster_id_comparison:
+            groupers = [pd.Grouper(key="time", freq="15min"), "cluster_id"]
         else:
             groupers = pd.Grouper(key="time", freq="15min")
 
@@ -583,8 +604,10 @@ class DataSessions:
         data = data.reset_index()
 
         # find max num of 15min interval-sessions in given interval
-        if multi_files:
+        if multi_files and (not cluster_id_comparison):
             groupers = [pd.Grouper(key="time", freq=interval), "identifier"]
+        elif cluster_id_comparison:
+            groupers = [pd.Grouper(key="time", freq=interval), "cluster_id"]
         else:
             groupers = pd.Grouper(key="time", freq=interval)
         data = data.groupby(groupers)["amount"].max()
@@ -768,20 +791,27 @@ class DataSessions:
         dates.fillna(0, inplace=True)
         return dates
 
-    def get_multi_cas(self, idents, interval: str = "D"):
+    def get_multi_cas(
+        self, group_by: list, group_in: str, interval: str = "D", multi_cluster=False
+    ):
         """
-        Return concurrent active session for given interval in all files.
+        Return concurrent active session for given interval either as comparison of all files or as comparison of
+        cluster ids.
 
         Parameters
         ----------
-        idents: list or array
-            containing all file identifier
+        group_by : list of str
+            containing names, which to group by
+        group_in : str
+            containing name of row in which groups will be created (possible: identifier, cluster_id)
         interval : str
             length of interval
             for minutes use: "[num of min]min"
             for hours use: "[num of hours]H"
             for days use: "[num of days]D"
             full list: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+        multi_cluster:
+            True if cluster_id should be aggregated over all file identifier
 
         Returns
         -------
@@ -790,18 +820,41 @@ class DataSessions:
         """
         data = self.get_cas(interval, True).copy()
 
+        if group_in == "identifier":
+            data = self.get_cas(interval, multi_files=True).copy()
+        elif group_in == "cluster_id":
+            if multi_cluster:
+                data = self.get_cas(
+                    interval, multi_files=True, cluster_id_comparison=True
+                ).copy()
+            else:
+                data = self.get_cas(interval, cluster_id_comparison=True).copy()
+        else:
+            raise Exception("Method has not been implemented for group_in=", group_in)
         dates = pd.DataFrame({"time": self.data_pings.get_sequence_of_days()})
         dates["time"] = pd.to_datetime(dates["time"])
-        for ident in idents:
-            ident_table = data[data["identifier"] == ident].copy()
-            ident_table.drop(
-                ["identifier"],
+
+        for x in group_by:
+            table = data[data[group_in] == x].copy()
+            if group_in == "identifier":
+                drops = ["identifier"]
+            else:
+                drops = [group_in]
+            table.drop(
+                drops,
                 axis="columns",
                 inplace=True,
             )
-            ident_table.rename(columns={"amount": ident}, inplace=True)
-            dates = pd.merge(dates, ident_table, on="time", how="outer")
 
+            table.rename(columns={"amount": x}, inplace=True)
+            dates = pd.merge(dates, table, on="time", how="outer")
+
+        first_timestamp = dates["time"].iloc[0]
+        last_timestamp = dates["time"].iloc[-1]
+        all_dates = pd.date_range(first_timestamp, last_timestamp, freq=interval)
+        dates.index = dates["time"]
+        dates = dates.reindex(all_dates, fill_value=0)
+        dates["time"] = dates.index
         dates.fillna(0, inplace=True)
         return dates
 
@@ -862,6 +915,16 @@ class DataSessions:
         """
         c_ids = self.data["cluster_id"].copy()
         return c_ids.drop_duplicates()
+
+    def get_amount_of_days(self) -> int:
+        """
+        Return amount of days between first and last metered day (both inclusive)
+
+        Return
+        ------
+        int
+        """
+        return len(self.data_pings.get_sequence_of_days())
 
 
 class LicenseUsage:
