@@ -20,7 +20,7 @@ def upload_zip(path: str, filename: str):
     filepath = path + "/" + filename
     df_lst = []
     with zipfile.ZipFile(filepath, mode="r") as zip_file:
-        files = zip_file.namelist()[1:]
+        files = zip_file.namelist()
         for file in files:
             if file.split(".")[-1] == "zip":
                 df_lst.extend(deep_zip(BytesIO(zip_file.read(file)), file))
