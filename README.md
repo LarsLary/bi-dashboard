@@ -7,19 +7,15 @@ TODO: Write Description
 TODO: Insert Visuals / Screenshots from website
 
 ## Installation + Usage
+This project uses standard python venv and was tested with **python 3.10.6**
 
-### Using boot files
+### Starting the Dashboard
+#### Using boot files
+- Windows: Open the `start(Windows).bat` file to start the dashboard
+- Linux: Use `source start(Linux).sh` in the terminal to start the dashboard
 
-#### Windows
-Open the `start(Windows).bat` file to start the dashboard
-
-#### Linux
-Use `source start(Linux).sh` in the terminal to start the dashboard
-
-### Using the terminal
-
-#### Linux
-This project uses standard python venv and was tested with **python 3.10.6**, every step should be performed in the project root directory:
+#### Using the terminal
+For Linux: every step should be performed in the project root directory:
 1. Create virtual environment: `python3 -m venv venv`
 2. Activate the virtual environment: `source venv/bin/activate`
 3. Install all packages: `pip install -r requirements.txt`
@@ -30,6 +26,8 @@ Run the app:
 1. Activate venv: `source venv/bin/activate`
 2. Run the app: `python3 main.py`
 
+### CSV Files
+If the column names in the CSV file change, you need to adjust the [csv_config.py](csv_config.py) file. You will find all instructions in the comments there.
 
 ## Authors
 Bachelorpraktikum 2022 TU Darmstadt Gruppe 21
