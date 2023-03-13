@@ -19,6 +19,7 @@ from computation.features import Features
 from dash_app import background, upload
 from dash_app.upload import convert_report_to_df
 from vis.additional_data_vis import get_license_usage_table
+from vis.graph_vis import empty_fig
 from vis.web_designs import DROPDOWN_OPTIONS, tab_layout
 
 UPLOAD_CACHE_PATH = os.path.abspath("./cache/upload_data/")
@@ -148,10 +149,11 @@ def load_data(
     Input("select-date", "start_date"),
     Input("select-date", "end_date"),
     Input("filename", "data"),
-    Input(component_id="graph-type", component_property="value"),
+    Input("graph-type", "value"),
     Input("file-select-feature", "value"),
     Input("cluster_id-select", "value"),
     Input("multi_cluster", "value"),
+    Input("time-reset", "n_clicks"),
     prevent_inital_call=True,
 )
 def update_output_div(
@@ -162,6 +164,7 @@ def update_output_div(
     file_select: str,
     c_id_select: str,
     multi_cluster: str,
+    time_reset: int,
 ):
     """
     Parameters
@@ -173,9 +176,13 @@ def update_output_div(
     filename : str
     graph_type : String, either "bar", "line" or "auto"
     file_select: String
+        the selected file identifier
     c_id_select: String
+        the selected cluster id
     multi_cluster: bool
         True if cluster_id should be aggregated over all file identifier
+    time_reset: int
+        Only used for updates, indicates if the time interval should be maximised
 
     main computation of the frontend
 
@@ -211,7 +218,7 @@ def update_output_div(
 
         """checking if new data is loaded and new initial dates should be set"""
         new_data = False
-        if not driver.check_if_table_exists("current_data"):
+        if ctx.triggered_id == "filename" or ctx.triggered_id == "time-reset":
             new_data = True
 
         """setting the first and last dates for the represented data"""
@@ -221,8 +228,12 @@ def update_output_div(
         """trim dataframe to selected time interval"""
         sessions.crop_data(first_date, last_date)
 
+        empty_val = False
+        if len(sessions.data[sessions.data["identifier"] == file_select].index) == 0:
+            empty_val = True
+
         """store data of current settings in database"""
-        if graph_type == "automatic":
+        if (graph_type == "automatic") and (not empty_val):
             graph_type = "bar" if (len(data_pings.get_metered_days()) <= 2) else "line"
 
         graphs = []
@@ -233,18 +244,26 @@ def update_output_div(
             multi_cluster_bool = False
         for option in DROPDOWN_OPTIONS:
             dropdown_id = option["label"]
-            fig, additional = background.select_graph(
-                dropdown_id, sessions, file_select, graph_type, multi_cluster_bool
-            )
+            if empty_val:
+                fig = empty_fig()
+                additional = pd.DataFrame()
+            else:
+                fig, additional = background.select_graph(
+                    dropdown_id, sessions, file_select, graph_type, multi_cluster_bool
+                )
             graphs.append(dcc.Graph(figure=fig, className="graph"))
             additions[str(option["value"])] = additional.to_dict()
 
         """get values for file statistics"""
-        driver.df_to_sql_replace(sessions.data, "current_data")
-
-        filename, lines, cal_days, metered_days = background.get_overview_table(
-            sessions.data_pings, file_select, c_id
-        )
+        if empty_val:
+            filename = dash.no_update
+            lines = dash.no_update
+            cal_days = 0
+            metered_days = 0
+        else:
+            filename, lines, cal_days, metered_days = background.get_overview_table(
+                sessions.data_pings, file_select, c_id
+            )
     else:
         """get values for file statistics"""
         filename, lines, cal_days, metered_days = background.get_overview_table(
@@ -274,7 +293,7 @@ def update_output_div(
 @app.callback(
     Output(component_id="graph_data3", component_property="children"),
     Output("license-store", "data"),
-    Input("file-select-license", "value"),
+    Input("filename_license", "data"),
     prevent_inital_call=True,
 )
 def update_output_license(filename: str):
@@ -290,9 +309,11 @@ def update_output_license(filename: str):
     dcc.Graph which represents the graph with the id 'graph3'
     """
     if driver.check_if_table_exists("license"):
-        license_data = background.get_license_data_of(filename)
+        license_data = background.get_license_data()
         license_usage = LicenseUsage(license_data)
-        additional = get_license_usage_table(license_usage)
+        additional = get_license_usage_table(
+            license_usage, background.get_license_identifier()
+        )
         return (
             dbc.Table.from_dataframe(additional, style={"text-align": "right"}),
             additional.to_dict(),
@@ -530,14 +551,13 @@ def set_select_options(filename: str, file_select_value: str):
     str
         current selected cluster_id
     """
-
+    sleep(0.5)
     if driver.check_if_table_exists("identifier"):
-        idents = driver.get_df_from_db("identifier")
+        idents = background.get_feature_identifier()
 
         cur_c_id = "All Cluster-IDs"
         c_ids = driver.get_df_from_db("cluster_ids")
         if ctx.triggered_id == "filename":
-            idents = background.get_feature_identifier()
             c_ids = c_ids[c_ids["identifier"] == idents[-1]]
         else:
             c_ids = c_ids[c_ids["identifier"] == file_select_value]
@@ -547,28 +567,6 @@ def set_select_options(filename: str, file_select_value: str):
             return idents, idents[-1], c_ids, cur_c_id
         return dash.no_update, dash.no_update, c_ids, cur_c_id
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
-
-
-@app.callback(
-    Output("file-select-license", "options"),
-    Output("file-select-license", "value"),
-    Input("filename_license", "data"),
-    prevent_inital_callback=True,
-)
-def set_license_ops(filename: str):
-    """
-    Parameters
-    ----------
-    filename: str
-        not used, only for updates
-
-    Returns
-    -------
-    """
-    if ctx.triggered_id == "filename_license":
-        idents = background.get_license_identifier()
-        return idents, idents[len(idents) - 1]
-    return dash.no_update, dash.no_update
 
 
 @app.callback(

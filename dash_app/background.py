@@ -26,15 +26,19 @@ HIGH_PERF_MODE = True
 GRAPH_LINE_COLOR = "#FFFFFF"
 
 
-def select_date(sel_date, df: pd.DataFrame, asc: bool, init_change: bool):
+def select_date(sel_date: str, df: pd.DataFrame, asc: bool, init_change: bool):
     """
     Parameters
     ----------
-    sel_date : String which represents a date, selected in the calendar tool
-    df : pd.Dataframe used to extract a date out of this dataframe
-    asc : boolean which is true if the date should be the beginning date and
-            false if the date should be the ending date
-    init_change : boolean which is true if a new date should be loaded out of the dataframe
+    sel_date : String
+        represents a date, selected in the calendar tool
+    df : pd.Dataframe
+        used to extract a date out of this dataframe
+    asc : boolean
+        true if the date should be the beginning date and
+        false if the date should be the ending date
+    init_change : boolean
+        true if a new date should be loaded out of the dataframe
 
     Returns
     -------
@@ -121,7 +125,7 @@ def get_cluster_ids_of(identifier: str):
     return c_ids["cluster_id"].to_numpy().tolist()
 
 
-def get_license_data_of(identifier: str):
+def get_license_data():
     """
     Return license data belonging to given identifier
 
@@ -135,7 +139,6 @@ def get_license_data_of(identifier: str):
         data frame containing license data
     """
     license_data = driver.get_df_from_db("license")
-    license_data = license_data[license_data["identifier"] == identifier]
     return license_data
 
 

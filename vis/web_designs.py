@@ -97,15 +97,43 @@ def header() -> html.Header:
             ),
             html.Div(
                 [
+                    dcc.Dropdown(
+                        [],
+                        "",
+                        id="file-select-feature",
+                        className="settings-dropdown",
+                        clearable=False,
+                    ),
+                    dcc.Dropdown(
+                        [],
+                        "",
+                        id="cluster_id-select",
+                        className="settings-dropdown",
+                        clearable=False,
+                    ),
+                ],
+                className="header_dropdowns",
+            ),
+            html.Div(
+                [
                     "Time interval: ",
                     dcc.DatePickerRange(
                         id="select-date",
+                        display_format="DD-MM-YYYY",
                         month_format="MMMM Y",
                         start_date_placeholder_text="Start",
                         end_date_placeholder_text="Ende",
                     ),
                 ],
                 className="time",
+            ),
+            html.Div(
+                html.Button(
+                    "<->",
+                    id="time-reset",
+                    className="button",
+                    title="Set the time interval to max values",
+                )
             ),
             html.Div(
                 [
@@ -125,7 +153,7 @@ def header() -> html.Header:
                         src="assets/threedy_logo.svg",
                         height="43 px",
                         width="auto",
-                        style={"verticalAlign": "top", "margin-right": "15px"},
+                        style={"verticalAlign": "top", "marginRight": "15px"},
                     )
                 ],
                 className="col-2 logo",
@@ -377,34 +405,10 @@ def settings():
                 className="settings-dropdown",
                 clearable=False,
             ),
-            html.Div(["Select a Report:"], className="text"),
-            dcc.Dropdown(
-                [],
-                "",
-                id="file-select-feature",
-                className="settings-dropdown",
-                clearable=False,
-            ),
-            html.Div(["Select a Cluster-ID:"], className="text"),
-            dcc.Dropdown(
-                [],
-                "",
-                id="cluster_id-select",
-                className="settings-dropdown",
-                clearable=False,
-            ),
             dcc.Checklist(
                 ["Aggregate Cluster ID data"],
                 [],
                 id="multi_cluster",
-            ),
-            html.Div(["Select a license file:"], className="text"),
-            dcc.Dropdown(
-                [],
-                "",
-                id="file-select-license",
-                className="settings-dropdown",
-                clearable=False,
             ),
             html.H2(["Database"], className="settings-h3"),
             html.Div(["Reset:"], className="text"),

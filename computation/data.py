@@ -945,8 +945,11 @@ class LicenseUsage:
         """
         self.data = data
 
-    def get_license_usage_data(self):
+    def get_license_usage_data(self, license_identifier: list):
         """
+        license_identifier:
+            List of all license identifier
+
         Return the number of cache generations of a feature.
 
         Returns
@@ -957,18 +960,46 @@ class LicenseUsage:
         """
 
         license_df = self.data
-        result = (
-            license_df[["resource_id", "feature_name"]]
-            .drop_duplicates(subset="resource_id")
-            .groupby("feature_name")
-            .count()
-            .reset_index()
-            .sort_values(by=["resource_id"], ascending=False)
-        )
+        result = pd.DataFrame([])
+        result["feature_name"] = license_df["feature_name"].drop_duplicates()
         result["feature_name"] = (result["feature_name"].str.rsplit("/", n=1)).str[-1]
-        total_row = pd.Series(
-            {"feature_name": "Total", "resource_id": result["resource_id"].sum()}
-        )
-        result = pd.concat([result, total_row.to_frame().T], ignore_index=True)
 
+        tot = pd.DataFrame({"feature_name": "Total", "resource_id": 0}, index=[0])
+        result = pd.concat([result, tot], ignore_index=True)
+
+        names = result.copy()
+        names["resource_id"] = 0
+
+        for ident in license_identifier:
+            n = names.copy()
+            df = license_df[license_df["identifier"] == ident]
+            res = (
+                df[["resource_id", "feature_name"]]
+                .drop_duplicates(subset="resource_id")
+                .groupby("feature_name")
+                .count()
+                .reset_index()
+                .sort_values(by=["resource_id"], ascending=False)
+            )
+
+            res["feature_name"] = (res["feature_name"].str.rsplit("/", n=1)).str[-1]
+            total_row = pd.Series(
+                {"feature_name": "Total", "resource_id": res["resource_id"].sum()}
+            )
+
+            res = pd.concat([res, total_row.to_frame().T], ignore_index=True)
+
+            for row_id, row in res.iterrows():
+                n.loc[n["feature_name"] == row["feature_name"], "resource_id"] = res[
+                    res["feature_name"] == row["feature_name"]
+                ]["resource_id"].item()
+            result[ident] = n["resource_id"]
+        result.fillna(0, inplace=True)
+
+        totals = []
+        for row_id, row in result.iterrows():
+            row = row[2:]
+            totals.append(row.sum())
+
+        result["Total"] = totals
         return result

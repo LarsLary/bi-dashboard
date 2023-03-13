@@ -80,7 +80,7 @@ def get_cas_statistics(session: DataSessions):
     )
 
 
-def get_license_usage_table(license_data: LicenseUsage):
+def get_license_usage_table(license_data: LicenseUsage, license_identifier: list):
     """
     Gets the data of the license usage
 
@@ -88,6 +88,8 @@ def get_license_usage_table(license_data: LicenseUsage):
     ---------
     license_data:
         LicenseUsage which represent the data used for the computation
+    license_identifier:
+        List of all license identifier
 
     Returns
     -------
@@ -95,13 +97,12 @@ def get_license_usage_table(license_data: LicenseUsage):
         DataFrame for dbc.Table with the number of Cache Generation per Feature
         and the total number of Cache Generations
     """
-    data = license_data.get_license_usage_data()
-
-    return apply_thousand_seperator(
-        pd.DataFrame(
-            {"Loader": data.feature_name, "Cache Generations": data.resource_id}
-        )
-    )
+    data = license_data.get_license_usage_data(license_identifier)
+    df = pd.DataFrame({"Loader": data.feature_name})
+    for ident in license_identifier:
+        df[ident] = data[ident]
+    df["Total"] = data["Total"]
+    return apply_thousand_seperator(df)
 
 
 def get_multi_total_amount_table(session: DataSessions, idents):

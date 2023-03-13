@@ -116,15 +116,11 @@ def check_if_table_exists(table_name: str) -> bool:
     """
     cursor = create_con().cursor()
     tables = cursor.execute(
-        "SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='"
-        + table_name
-        + "';"
-    ).fetchall()
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?;", (table_name,)
+    )
+    ret = bool(tables.fetchone())
     close_con()
-    if not tables:
-        return False
-    else:
-        return True
+    return ret
 
 
 def get_df_from_db(table_name: str) -> pd.DataFrame:
