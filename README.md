@@ -33,7 +33,7 @@ If the column names in the CSV file change, you need to adjust the [csv_config.p
 - The template must contain a cover sheet and a following slide with a table of a minimum size of 2x4. The order of the PowerPoint shapes must not differ from the template.
 - Slide layouts are used to generate additional slides. The third slide layout should contain a table placeholder and a picture placeholder (See template: "bi_tab_pic", for e.g. "Token Consumption"), the fourth slide layout only a picture placeholder ("bi_pic_only") and the fifth slide layout only a table ("bi_tab_only", for e.g. "License Usage"). The picture placeholders should have a format of 7:5.
 
-The presentation can be changed as desired after generation. For more information, see the implementation (dash_app/interaction.py: def export_data(..) & vis/prs_lib.py)
+The presentation can be changed as desired after generation. For more information, see the implementation (dash_app/interaction.py: def export_data(..) & vis/prs_lib.py). The template can be found at assets/report_analysis_template.pptx
 
 ## Authors
 Bachelorpraktikum 2022 TU Darmstadt Gruppe 21
