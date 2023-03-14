@@ -162,6 +162,10 @@ def prepare_data(
             driver.df_to_sql_append(df_pings, "pings")
             driver.filter_duplicates("pings")
 
+            # Calculate and save report statistics
+            report_statistics(data_pings, ident_name)
+
+            # Calculate and save ClusterID statistics
             cluster_ids = data_session.get_cluster_ids()
             cluster_ids = cluster_ids.to_frame()
             cluster_ids["identifier"] = ident
@@ -175,6 +179,53 @@ def prepare_data(
             feature_filename = filename
 
     return False, feature_filename, license_filename
+
+
+def report_statistics(data_pings: DataPings, ident_name: str):
+    """
+    Calculate and save report statistics
+
+    Parameters
+    ----------
+    data_pings : DataPings
+        DataPings of the uploaded file
+    ident_name : str
+        Identifier of the uploaded file
+    """
+
+    # Calculate and save report statistics
+    if driver.check_if_table_exists("report_statistics"):
+        report_statistics = driver.get_df_from_db("report_statistics")
+    else:
+        report_statistics = pd.DataFrame(
+            columns=["Report", "Lines", "Total Days", "Earliest Day", "Last Day"]
+        )
+    report_statistics.set_index("Report", inplace=True)
+
+    # Calculate statistics
+    lines = f"{len(data_pings.get_pings().index):,}".replace(",", " ")
+    sequence_of_days = data_pings.get_sequence_of_days()
+    total_days = str(len(sequence_of_days))
+    earliest_cal_day = str(sequence_of_days[0])
+    last_cal_day = str(sequence_of_days[-1])
+
+    # Append or update statistics in report_statistics
+    if ident_name in report_statistics.index:
+        report_statistics.loc[ident_name, "Lines"] = lines
+        report_statistics.loc[ident_name, "Total Days"] = total_days
+        report_statistics.loc[ident_name, "Earliest Day"] = earliest_cal_day
+        report_statistics.loc[ident_name, "Last Day"] = last_cal_day
+    else:
+        report_statistics.loc[ident_name] = [
+            lines,
+            total_days,
+            earliest_cal_day,
+            last_cal_day,
+        ]
+
+    # Save report_statistics
+    report_statistics.reset_index(inplace=True)
+    driver.df_to_sql_replace(report_statistics, "report_statistics")
 
 
 def rename_columns(df: pd.DataFrame, column_names_map: dict):

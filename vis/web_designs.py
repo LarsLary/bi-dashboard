@@ -1,6 +1,6 @@
 import dash_bootstrap_components as dbc
 import dash_uploader
-from dash import dash, dcc, html
+from dash import dcc, html
 
 from vis.graph_vis import empty_fig
 
@@ -279,25 +279,19 @@ def tab_layout():
                     dcc.Tab(
                         label="Feature Usage",
                         children=body_feature(),
-                        className="tab-right",
+                        className="tab-left",
                         id="tab1",
                     ),
                     dcc.Tab(
                         label="Transcoder Usage",
                         children=body_license(),
-                        className="tab-left",
+                        className="tab-middle",
                         id="tab2",
                     ),
                     dcc.Tab(
-                        label="File Statistics",
-                        children=[
-                            dbc.Table(
-                                overview_table,
-                                className="table-statistics",
-                                id="file-data-table",
-                            )
-                        ],
-                        className="tab-middle",
+                        label="Report Statistics",
+                        children=[body_report_statistics()],
+                        className="tab-right",
                         id="tab3",
                     ),
                 ],
@@ -323,6 +317,17 @@ def body_license():
                 ]
             ),
         ]
+    )
+
+
+def body_report_statistics():
+    """
+    Returns
+    -------
+    html.Div which represents the html body of the dashboard tab Report Statistics
+    """
+    return html.Div(
+        [""], id="report-statistics-table", className="vertical-center-table"
     )
 
 
@@ -422,35 +427,3 @@ def settings():
         className="settings-div",
         id="settings-div",
     )
-
-
-overview_table = dash.html.Tbody(
-    [
-        dash.html.Tr(
-            [
-                dash.html.Td("Report:", className="info-table-cell"),
-                dash.html.Td("", id="overview_filename", className="info-table-cell"),
-            ]
-        ),
-        dash.html.Tr(
-            [
-                dash.html.Td("Lines:", className="info-table-cell"),
-                dash.html.Td("", id="overview_lines", className="info-table-cell"),
-            ]
-        ),
-        dash.html.Tr(
-            [
-                dash.html.Td("Calendar Days:", className="info-table-cell"),
-                dash.html.Td("", id="overview_cal_days", className="info-table-cell"),
-            ]
-        ),
-        dash.html.Tr(
-            [
-                dash.html.Td("Metered Days:", className="info-table-cell"),
-                dash.html.Td(
-                    "", id="overview_metered_days", className="info-table-cell"
-                ),
-            ]
-        ),
-    ]
-)

@@ -24,7 +24,7 @@ def set_graph(slide, img_path: str):
             shape.insert_picture(img_path)
 
 
-def set_table(slide, additional: dict):
+def set_table(slide, additional: dict, column_width=None):
     """
     Add a table with the contents of additional to a slides TablePlaceholder.
 
@@ -32,6 +32,7 @@ def set_table(slide, additional: dict):
     ----------
     slide : the slide where the table is to be added to
     additional : the contents of the new table.
+    column_width : the width of the table (optional)
 
     Returns
     -------
@@ -58,3 +59,7 @@ def set_table(slide, additional: dict):
                 cell.text = str(flat_df[i])
                 cell.text_frame.paragraphs[0].alignment = PP_ALIGN.RIGHT
                 i = i + 1
+
+            if column_width:
+                for i in range(len(table.columns)):
+                    table.columns[i].width = column_width
