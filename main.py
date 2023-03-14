@@ -28,7 +28,4 @@ def open_browser(port_num: int):
 if __name__ == "__main__":
     port = 8050
     Thread(target=open_browser, args=[port]).start()
-    interaction.app.run_server(
-        # Set debug false when deploy
-        debug=True, port=port
-    )
+    interaction.app.run_server(debug=False, port=port)

@@ -1,10 +1,11 @@
 from datetime import date
-from typing import Union
 
+import dash_bootstrap_components as dbc
 import pandas as pd
+from dash import html
 
 import database.driver as driver
-from computation.data import DataPings, DataSessions
+from computation.data import DataSessions
 from vis.additional_data_vis import (
     get_cas_statistics,
     get_cluster_id_table,
@@ -57,53 +58,47 @@ def select_date(sel_date: str, df: pd.DataFrame, asc: bool, init_change: bool):
     return data
 
 
-def get_overview_table(
-    data_pings: Union[None, DataPings],
-    file_identifier: str,
-    cluster_id: Union[None, str],
-):
+def get_report_statistics_table():
     """
-    Get overview table data.
-
-    Parameters
-    ----------
-    data_pings : DataPings which represents the selected entry in the dropdown menu with the id 'dropdown1'
-    file_identifier: String which represents the identifier of each file
-    cluster_id: String which represents the cluster_id that is selected
+    Get table displaying statistics of all reports
 
     Returns
     -------
-    filename: str
-        name of report
-    lines: str
-        number of pings
-    cal_days: str
-        number of calendar days
-    metered_days: str
-        number of metered days
+    dash.dbc.Table which represents the overview table
     """
-    if data_pings is not None:
-        data_pings_new = DataPings(
-            file_identifier,
-            data_pings.data[data_pings.data["identifier"] == file_identifier],
-            data_pings.features,
-            cluster_id,
-        )
-        filename = str(data_pings_new.get_filename())
-        lines = str(len(data_pings_new.get_pings().index))
-        cal_days = str(len(data_pings_new.get_sequence_of_days()))
-        metered_days = str(len(data_pings_new.get_metered_days()))
-    else:
-        filename = ""
-        lines = ""
-        cal_days = ""
-        metered_days = ""
 
-    return (
-        filename,  # current identifier
-        lines,  # current number of lines of pings
-        cal_days,  # current number of selected days
-        metered_days,  # current number of selected days with data
+    if driver.check_if_table_exists("report_statistics"):
+        report_statistics = driver.get_df_from_db("report_statistics")
+    else:
+        report_statistics = pd.DataFrame(
+            columns=["Report", "Lines", "Total Days", "Earliest Day", "Last Day"]
+        )
+
+    table_content = [
+        html.Tr(
+            [
+                html.Th(col, className="report_statistics_table_cell")
+                for col in report_statistics.columns
+            ]
+        )
+    ] + [
+        html.Tr(
+            [
+                html.Td(
+                    report_statistics.iloc[i][col],
+                    className="report_statistics_table_cell",
+                )
+                for col in report_statistics.columns
+            ]
+        )
+        for i in range(len(report_statistics))
+    ]
+
+    return dbc.Table(
+        html.Tbody(
+            table_content,
+            className="report_statistics_table",
+        )
     )
 
 

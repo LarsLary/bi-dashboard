@@ -125,12 +125,6 @@ body {
     height: 100%;
 }
 
-.info-table-cell {
-    font-size: 22px;
-    border: none;
-    color: var(--accent-color-1)
-}
-
 .graph {
     background-color: var(--background-dark-color);
     height: 50vh;
@@ -321,12 +315,11 @@ body {
     background-color: #2d2d2d !important;
     border-color: #2d2d2d !important;
     color: #868686;
-    !important;
     padding: 5px 0 !important;
     text-align: center !important;
     vertical-align: middle !important;
     margin: 0;
-    font-strech: ultra-expanded;
+    font-stretch: ultra-expanded;
 }
 
 
@@ -490,12 +483,17 @@ body {
     margin: 5px;
 }
 
-.table-statistics {
+.report_statistics_table {
     color: var(--accent-color-1);
     width: 40%;
-    height: 200px;
+    height: auto;
     margin: 40px;
 }
+
+.report_statistics_table_cell {
+    font-size: 18px;
+}
+
 
 .multi_additional {
     display: flex;

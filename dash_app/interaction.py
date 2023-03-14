@@ -11,6 +11,7 @@ from dash import Dash, Input, Output, State, ctx, dash, dcc
 from dash.long_callback import DiskcacheLongCallbackManager
 from plotly.graph_objects import Figure
 from pptx import Presentation
+from pptx.util import Cm
 
 import database.driver as driver
 import vis.prs_lib as prs_lib
@@ -138,10 +139,7 @@ def load_data(
 
 
 @app.callback(
-    Output(component_id="overview_filename", component_property="children"),
-    Output(component_id="overview_lines", component_property="children"),
-    Output(component_id="overview_cal_days", component_property="children"),
-    Output(component_id="overview_metered_days", component_property="children"),
+    Output(component_id="report-statistics-table", component_property="children"),
     Output(component_id="graphs-store", component_property="children"),
     Output("additions-store", "data"),
     Output("select-date", "start_date"),
@@ -255,20 +253,10 @@ def update_output_div(
             additions[str(option["value"])] = additional.to_dict()
 
         """get values for file statistics"""
-        if empty_val:
-            filename = dash.no_update
-            lines = dash.no_update
-            cal_days = 0
-            metered_days = 0
-        else:
-            filename, lines, cal_days, metered_days = background.get_overview_table(
-                sessions.data_pings, file_select, c_id
-            )
+        report_statistics_table = background.get_report_statistics_table()
     else:
         """get values for file statistics"""
-        filename, lines, cal_days, metered_days = background.get_overview_table(
-            None, "", None
-        )
+        report_statistics_table = background.get_report_statistics_table()
 
         """no data -> no updates for visuals"""
         graphs = dash.no_update
@@ -279,10 +267,7 @@ def update_output_div(
         last_date = end_date
 
     return (
-        filename,  # overview_table data
-        lines,  # overview_table data
-        cal_days,  # overview_table data
-        metered_days,  # overview_table data
+        report_statistics_table,  # report-statistics-table
         graphs,  # export data
         additions,  # export data
         first_date,  # time interval data
@@ -355,10 +340,6 @@ def update_dropdown(
 @app.callback(
     Output(component_id="exportFunc", component_property="data"),
     Input(component_id="export", component_property="n_clicks"),
-    State("overview_filename", component_property="children"),
-    State("overview_lines", component_property="children"),
-    State("overview_cal_days", component_property="children"),
-    State("overview_metered_days", component_property="children"),
     State("select-date", "start_date"),
     State("select-date", "end_date"),
     State("graphs-store", "children"),
@@ -368,10 +349,6 @@ def update_dropdown(
 )
 def export_data(
     clicks: int,
-    name: str,
-    lines: str,
-    cal_days: str,
-    metered_days: str,
     start_date: str,
     end_date: str,
     graphs: list,
@@ -384,14 +361,15 @@ def export_data(
         prs = Presentation("./assets/report_analysis_template.pptx")
 
         # title slide
-        prs.slides[0].shapes[0].text = "Report Analysis: " + name
+        prs.slides[0].shapes[0].text = "Report Analysis"
         prs.slides[0].shapes[1].text = start_date + " - " + end_date
 
-        # data slide
-        prs.slides[1].shapes[0].table.cell(1, 0).text = name
-        prs.slides[1].shapes[0].table.cell(1, 1).text = cal_days
-        prs.slides[1].shapes[0].table.cell(1, 2).text = metered_days
-        prs.slides[1].shapes[0].table.cell(1, 3).text = lines
+        # report Statistics slide
+        if driver.check_if_table_exists("report_statistics"):
+            report_statistics = driver.get_df_from_db("report_statistics")
+            slide = prs.slides.add_slide(prs.slide_layouts[4])
+            slide.shapes.title.text = "Report Statistics"
+            prs_lib.set_table(slide, report_statistics.to_dict(), Cm(5))
 
         # graph & statistic slides
         for option in DROPDOWN_OPTIONS:
@@ -451,7 +429,6 @@ def reset_db(clicks: int):
     driver.drop_all()
     shutil.rmtree(UPLOAD_CACHE_PATH)
     sleep(1.5)
-    # TODO: check if db has been deleted, then return
     return dash.no_update
 
 
