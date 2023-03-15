@@ -251,7 +251,6 @@ def get_multi_cas_graph(session: DataSessions, idents) -> Figure:
         y=idents,
         render_mode="webgl",
     )
-
     fig.update_layout(xaxis_title="Time", yaxis_title="CAS", legend_title="Identifier")
 
     return fig

@@ -102,13 +102,13 @@ def get_report_statistics_table():
     )
 
 
-def get_cluster_ids_of(identifier: str):
+def get_cluster_ids_of(identifier: list):
     """
     Return cluster ids belonging to given identifier
 
     Parameter
     ---------
-    identifier : str
+    identifier : list of str
 
     Returns
     -------
@@ -116,8 +116,9 @@ def get_cluster_ids_of(identifier: str):
         list of cluster ids
     """
     c_ids = driver.get_df_from_db("cluster_ids")
-    c_ids = c_ids[c_ids["identifier"] == identifier]
-    return c_ids["cluster_id"].to_numpy().tolist()
+    c_ids = c_ids[c_ids["identifier"].isin(identifier)]
+    c_ids = c_ids["cluster_id"].drop_duplicates()
+    return c_ids.to_numpy().tolist()
 
 
 def get_license_data():
@@ -215,7 +216,7 @@ def set_type_of_last_identifier(type_name: str):
 def select_graph(
     menu_entry: str,
     session: DataSessions,
-    identifier: str,
+    identifier: list,
     graph_type: str,
     multi_cluster: bool,
 ):
@@ -224,7 +225,7 @@ def select_graph(
     ----------
     menu_entry : String which defines the selected graph
     session : pd.Dataframe which represents the datapoints used for the selected graph
-    identifier : str which represents the identifier of the currently chosen file
+    identifier : list of str which represents the identifier currently chosen
     graph_type: either "bar" or "line"
     multi_cluster: bool
         True if all data should be aggregated over all files
@@ -247,15 +248,15 @@ def select_graph(
     """select graph and additional data depending on parameter menu_entry"""
     if menu_entry == "Token Consumption":
         fig = get_token_graph(session, graph_type=graph_type)
-        additional = get_total_amount_table(session)
+        additional = get_total_amount_table(session, identifier)
 
     elif menu_entry == "Product Usage":
         fig = get_fpc_graph(session)
-        additional = get_package_combination_table(session)
+        additional = get_package_combination_table(session, identifier)
 
     elif menu_entry == "Concurrent Active Sessions":
         fig = get_cas_graph(session, graph_type=graph_type)
-        additional = get_cas_statistics(session)
+        additional = get_cas_statistics(session, identifier)
 
     elif menu_entry == "Cluster-ID Comparison (Token)":
         if multi_cluster:

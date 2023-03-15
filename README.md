@@ -1,10 +1,12 @@
 # BI Dashboard
 
 ## Description
-TODO: Write Description
+This web-based dashboard provides a user-friendly interface, incorporating graphs and statistics to provide extensive visualization of the usage of tokens over time. The dashboard enables identification of usage patterns of the product, by comparing data from multiple customers across multiple cluster IDs. The analysis can be exported to a PowerPoint at any time.
+
+The BI dashboard was developed for the Threedy GmbH.
 
 ### Visuals
-TODO: Insert Visuals / Screenshots from website
+![Example](assets/Dashboard_Example.png)
 
 ## Installation + Usage
 This project uses standard python venv and was tested with **python 3.10.6**

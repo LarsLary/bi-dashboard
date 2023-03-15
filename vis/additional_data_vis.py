@@ -6,31 +6,33 @@ from dash import html
 from computation.data import DataSessions, LicenseUsage
 
 
-def get_total_amount_table(session: DataSessions):
+def get_total_amount_table(session: DataSessions, identifier):
     """
     Parameter
     ---------
     session:
          DataSession which represents the session which should be used for computation
+    identifier:
+        list of str which represents the file identifier
 
     Returns
     -------
     pd.DataFrame:
         DataFrame for dbc.Table with total token amount for each product and the total token amount
     """
-    data = session.get_total_token_amount()
+    data = session.get_multi_total_token_amount(identifier, "identifier")
 
-    return apply_thousand_seperator(
-        pd.DataFrame({"Package": data.index, "Tokens": data.values})
-    )
+    return apply_thousand_seperator(data)
 
 
-def get_package_combination_table(session: DataSessions):
+def get_package_combination_table(session: DataSessions, identifier):
     """
     Parameter
     ---------
     session:
          DataSession which represents the session which should be used for computation
+    identifier:
+        list of str which represents the file identifier
 
     Returns
     -------
@@ -59,7 +61,7 @@ def combine_additional(additional_list: List):
     )
 
 
-def get_cas_statistics(session: DataSessions):
+def get_cas_statistics(session: DataSessions, identifier):
     """
     Gets the data of the concurrent actives session
 
@@ -67,17 +69,17 @@ def get_cas_statistics(session: DataSessions):
     ---------
     session:
         DataSession which represents the session which should be used for computation
+    identifier:
+        list of str which represents the file identifier
 
     Returns
     -------
     pd.DataFrame:
         DataFrame for dbc.Table with Maximum, Mean and Mean for weekdays for the concurrent active sessions
     """
-    data = session.get_cas_statistics()
+    data = session.get_cas_statistics(identifier)
 
-    return apply_thousand_seperator(
-        pd.DataFrame({"Operation": data["name"], "Result": data["values"]})
-    )
+    return data
 
 
 def get_license_usage_table(license_data: LicenseUsage, license_identifier: list):
