@@ -152,6 +152,7 @@ def load_data(
     Input("cluster_id-select", "value"),
     Input("multi_cluster", "value"),
     Input("time-reset", "n_clicks"),
+    Input(component_id="apply-report-selection", component_property="n_clicks"),
     prevent_inital_call=True,
 )
 def update_output_div(
@@ -159,10 +160,11 @@ def update_output_div(
     end_date: str,
     filename: str,
     graph_type: str,
-    file_select: str,
+    file_select_value: list,
     c_id_select: str,
     multi_cluster: str,
     time_reset: int,
+    clicks: int,
 ):
     """
     Parameters
@@ -173,7 +175,7 @@ def update_output_div(
                     with the id 'select-date'
     filename : str
     graph_type : String, either "bar", "line" or "auto"
-    file_select: String
+    file_select_value: list of String
         the selected file identifier
     c_id_select: String
         the selected cluster id
@@ -181,6 +183,8 @@ def update_output_div(
         True if cluster_id should be aggregated over all file identifier
     time_reset: int
         Only used for updates, indicates if the time interval should be maximised
+    clicks : int
+        clicks of apply report selection button
 
     main computation of the frontend
 
@@ -196,22 +200,33 @@ def update_output_div(
     date.Date which represents the first selected day in the calendar tool
     date.Date which represents the last selected day in the calendar tool
     """
-
+    # if no file is selected or if selection hasn't been applied yet
+    if ctx.triggered_id == "file-select-feature" or not file_select_value:
+        return (
+            dash.no_update,  # overview_table data
+            dash.no_update,  # overview_table data
+            dash.no_update,  # overview_table data
+            dash.no_update,  # overview_table data
+            dash.no_update,  # export data
+            dash.no_update,  # export data
+            dash.no_update,  # time interval data
+            dash.no_update,  # time interval data
+        )
     if driver.check_if_table_exists("session"):
         features = Features().get_data_features()
 
         """set current cluster id"""
         c_id = None
+        # if not (c_id_select == "All Cluster-IDs" or c_id_select == []):
         if not c_id_select == "All Cluster-IDs":
             c_id = c_id_select
 
         """converting the dict containing all data back into a pd.Dataframe"""
         sql_session = driver.get_df_from_db("session")
-
         """create DataSessions object"""
         data_pings = DataPings(filename, driver.get_df_from_db("pings"), features, c_id)
         sessions = DataSessions(
-            sql_session, data_pings, features, 300, file_select, c_id
+            sql_session, data_pings, features, 300, file_select_value, c_id
         )
 
         """checking if new data is loaded and new initial dates should be set"""
@@ -227,7 +242,12 @@ def update_output_div(
         sessions.crop_data(first_date, last_date)
 
         empty_val = False
-        if len(sessions.data[sessions.data["identifier"] == file_select].index) == 0:
+        if (
+            len(
+                sessions.data[sessions.data["identifier"].isin(file_select_value)].index
+            )
+            == 0
+        ):
             empty_val = True
 
         """store data of current settings in database"""
@@ -247,7 +267,11 @@ def update_output_div(
                 additional = pd.DataFrame()
             else:
                 fig, additional = background.select_graph(
-                    dropdown_id, sessions, file_select, graph_type, multi_cluster_bool
+                    dropdown_id,
+                    sessions,
+                    file_select_value,
+                    graph_type,
+                    multi_cluster_bool,
                 )
             graphs.append(dcc.Graph(figure=fig, className="graph"))
             additions[str(option["value"])] = additional.to_dict()
@@ -324,16 +348,21 @@ def update_dropdown(
     drop1: int,
     drop2: int,
 ):
-    graph1 = graphs[drop1]
-    additional1 = dbc.Table.from_dataframe(
-        pd.DataFrame.from_dict(additions[str(drop1)]), style={"text-align": "right"}
-    )
+    if not graphs:
+        graph1 = empty_fig()
+        graph2 = empty_fig()
+        additional1 = ""
+        additional2 = ""
+    else:
+        graph1 = graphs[drop1]
+        additional1 = dbc.Table.from_dataframe(
+            pd.DataFrame.from_dict(additions[str(drop1)]), style={"text-align": "right"}
+        )
 
-    graph2 = graphs[drop2]
-    additional2 = dbc.Table.from_dataframe(
-        pd.DataFrame.from_dict(additions[str(drop2)]), style={"text-align": "right"}
-    )
-
+        graph2 = graphs[drop2]
+        additional2 = dbc.Table.from_dataframe(
+            pd.DataFrame.from_dict(additions[str(drop2)]), style={"text-align": "right"}
+        )
     return graph1, graph2, additional1, additional2
 
 
@@ -500,9 +529,10 @@ def data_name_input(confirm, file, name, num, checkbox, ident_names):
     Output("cluster_id-select", "value"),
     Input("filename", "data"),
     Input("file-select-feature", "value"),
+    Input(component_id="apply-report-selection", component_property="n_clicks"),
     prevent_inital_call=True,
 )
-def set_select_options(filename: str, file_select_value: str):
+def set_select_options(filename: str, file_select_value: str, clicks: int):
     """
     Update select menus of cluster_ids, license_id and feature_id when a new file gets uploaded
     or another cluster_id or
@@ -511,14 +541,16 @@ def set_select_options(filename: str, file_select_value: str):
     Parameter
     ---------
     filename : str
-    file_select_value : str
+    file_select_value : list of str
+    clicks : int
+        clicks of apply report selection button
 
     Returns
     -------
     list of str
         select option for feature file select
-    str
-        current selected feature file
+    list of str
+        current selected feature files
     list of str
         select option for license file select
     str
@@ -529,7 +561,11 @@ def set_select_options(filename: str, file_select_value: str):
         current selected cluster_id
     """
     sleep(0.5)
-    if driver.check_if_table_exists("identifier"):
+    if (
+        driver.check_if_table_exists("identifier")
+        and not ctx.triggered_id == "file-select-feature"
+        and not (ctx.triggered_id == "apply-report-selection" and not file_select_value)
+    ):
         idents = background.get_feature_identifier()
 
         cur_c_id = "All Cluster-IDs"
@@ -537,11 +573,12 @@ def set_select_options(filename: str, file_select_value: str):
         if ctx.triggered_id == "filename":
             c_ids = c_ids[c_ids["identifier"] == idents[-1]]
         else:
-            c_ids = c_ids[c_ids["identifier"] == file_select_value]
-        c_ids = c_ids["cluster_id"].to_numpy().tolist()
+            c_ids = c_ids[c_ids["identifier"].isin(file_select_value)]
+        c_ids = c_ids["cluster_id"].drop_duplicates()
+        c_ids = c_ids.to_numpy().tolist()
         c_ids = ["All Cluster-IDs"] + c_ids
         if ctx.triggered_id == "filename":
-            return idents, idents[-1], c_ids, cur_c_id
+            return idents, [idents[-1]], c_ids, cur_c_id
         return dash.no_update, dash.no_update, c_ids, cur_c_id
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 

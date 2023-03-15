@@ -97,12 +97,25 @@ def header() -> html.Header:
             ),
             html.Div(
                 [
-                    dcc.Dropdown(
-                        [],
-                        "",
-                        id="file-select-feature",
-                        className="settings-dropdown",
-                        clearable=False,
+                    dbc.DropdownMenu(
+                        children=[
+                            dcc.Checklist(
+                                options=[],
+                                value=[],
+                                id="file-select-feature",
+                                className="dropdown-list",
+                                inputClassName="dropdown-list-input",
+                                labelClassName="dropdown-list-label",
+                                # labelStyle={'display': 'block'}
+                            ),
+                            html.Button(
+                                "Apply",
+                                id="apply-report-selection",
+                                className="dropdown-apply",
+                            ),
+                        ],
+                        className="settings-dropdown settings-dropdown-menu",
+                        toggleClassName="dropdown-menu-toggle",
                     ),
                     dcc.Dropdown(
                         [],

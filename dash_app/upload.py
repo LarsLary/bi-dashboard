@@ -155,7 +155,6 @@ def prepare_data(
 
             df_session["identifier"] = ident
             df_pings["identifier"] = ident
-
             driver.df_to_sql_append(df_session, "session")
             driver.filter_duplicates("session")
 

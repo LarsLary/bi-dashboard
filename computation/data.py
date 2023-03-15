@@ -225,7 +225,7 @@ class DataSessions:
         data_pings: DataPings,
         features: pd.DataFrame,
         block_length: int,
-        file_selector: str,
+        file_selector: list,
         cluster_id_selector: str = None,
     ):
         """Declare/Initialize variable and extract sessions.
@@ -237,8 +237,8 @@ class DataSessions:
         features : pd.Dataframe
         block_length : int
             session period in seconds
-        file_selector : str
-            the identifier of a specific file
+        file_selector : list of str
+            identifiers of selected files
         cluster_id_selector : str
             cluster_id that is selected
         """
@@ -500,10 +500,10 @@ class DataSessions:
             groupers = [pd.Grouper(key="block_start", freq=interval), "identifier"]
         elif cluster_id_comparison:
             if not multi_files:
-                data = data[data["identifier"] == self.file_selector]
+                data = self.filter_data_for_identifier(data)
             groupers = [pd.Grouper(key="block_start", freq=interval), "cluster_id"]
         else:
-            data = data[data["identifier"] == self.file_selector]
+            data = self.filter_data_for_identifier(data)
             if self.cluster_id_selector is not None:
                 data = data[data["cluster_id"] == self.cluster_id_selector]
             groupers = pd.Grouper(key="block_start", freq=interval)
@@ -563,7 +563,7 @@ class DataSessions:
             data = s
         elif cluster_id_comparison:
             if not multi_files:
-                data = data[data["identifier"] == self.file_selector]
+                data = self.filter_data_for_identifier(data)
             s = data[["block_start", "cluster_id"]].copy()
             s = s[
                 (s["block_start"].str[14:16].astype("int") % 15 >= 10)
@@ -574,7 +574,7 @@ class DataSessions:
             ]
             data = s
         else:
-            data = data[data["identifier"] == self.file_selector]
+            data = self.filter_data_for_identifier(data)
             if self.cluster_id_selector is not None:
                 data = data[data["cluster_id"] == self.cluster_id_selector]
             s = data["block_start"].copy()
@@ -650,7 +650,7 @@ class DataSessions:
         cols = self.features.keyword
         cols = pd.concat([cols, pd.Series(["total"])])
         data = self.data_with_token_cost.copy()
-        data = data[data["identifier"] == self.file_selector]
+        data = self.filter_data_for_identifier(data)
         if self.cluster_id_selector is not None:
             data = data[data["cluster_id"] == self.cluster_id_selector]
         data = data[cols].sum()
@@ -674,7 +674,7 @@ class DataSessions:
         for i in range(1, 2 ** len(feat_names)):
             combination = []
             data = self.data_with_feature_use
-            data = data[data["identifier"] == self.file_selector]
+            data = self.filter_data_for_identifier(data)
             if self.cluster_id_selector is not None:
                 data = data[data["cluster_id"] == self.cluster_id_selector]
             j = 0
@@ -701,27 +701,48 @@ class DataSessions:
 
         return self.feature_package_combination
 
-    def get_cas_statistics(self):
+    def get_cas_statistics(self, identifier):
         """
         Compute the statistics for the concurrent active sessions.
+
+        identifier:
+            list of str which represents the file identifier
 
         Returns
         -------
         pd.Dataframe:
              Maximum, Mean and Mean for weekdays for the concurrent active sessions
         """
+        data = self.get_multi_cas(identifier, "identifier")
+        res = []
+        cas_max_total = 0
+        cas_mean_total = 0
+        cas_weekdays_mean_total = 0
 
-        cas = self.get_cas()
-        cas_max = cas["amount"].max()
-        cas_mean = round(cas["amount"].mean(), 0)
-        cas_weekdays_mean = round(cas[cas.time.dt.dayofweek < 5]["amount"].mean(), 0)
+        col_names = list(data.columns)
+        """calculate cas stats per identifier"""
+        for ident in identifier:
+            if ident not in col_names:
+                continue
+            cas = data[ident]
+            cas_max = cas.max()
+            cas_mean = round(cas.mean(), 0)
+            cas_weekdays_mean = round(data[data.time.dt.dayofweek < 5][ident].mean(), 0)
+            res.append([ident, cas_max, cas_mean, cas_weekdays_mean])
+            """for cas stats of all identifier"""
+            cas_max_total += cas_max
+            cas_mean_total += cas_mean
+            cas_weekdays_mean_total += cas_weekdays_mean
+        """calculate cas stats of all identifier"""
+        num_of_ident = len(identifier)
+        cas_max_total /= num_of_ident
+        cas_mean_total /= num_of_ident
+        cas_weekdays_mean_total /= num_of_ident
+        res.append(["all", cas_max_total, cas_mean_total, cas_weekdays_mean_total])
 
-        cas_statistics = {
-            "name": ["Max", "Mean", "Mean in weekdays"],
-            "values": [cas_max, cas_mean, cas_weekdays_mean],
-        }
-
-        return pd.DataFrame(cas_statistics)
+        return pd.DataFrame(
+            res, columns=["Identifier", "Max", "Mean", "Mean in weekdays"]
+        )
 
     def get_selector_comparison_data(
         self, group_by: list, group_in: str, interval: str = "D", multi_cluster=False
@@ -755,6 +776,7 @@ class DataSessions:
         """
         if group_in == "identifier":
             data = self.get_token_consumption(interval, multi_files=True).copy()
+            data = data[data["identifier"].isin(group_by)]
         elif group_in == "cluster_id":
             if multi_cluster:
                 data = self.get_token_consumption(
@@ -818,8 +840,6 @@ class DataSessions:
         pd.DataFrame
             data frame containing total cost per chosen interval for each file identifier
         """
-        data = self.get_cas(interval, True).copy()
-
         if group_in == "identifier":
             data = self.get_cas(interval, multi_files=True).copy()
         elif group_in == "cluster_id":
@@ -849,13 +869,14 @@ class DataSessions:
             table.rename(columns={"amount": x}, inplace=True)
             dates = pd.merge(dates, table, on="time", how="outer")
 
+        dates = dates.sort_values(by="time")
         first_timestamp = dates["time"].iloc[0]
         last_timestamp = dates["time"].iloc[-1]
         all_dates = pd.date_range(first_timestamp, last_timestamp, freq=interval)
         dates.index = dates["time"]
-        dates = dates.reindex(all_dates, fill_value=0)
+        dates = dates.reindex(all_dates)
         dates["time"] = dates.index
-        dates.fillna(0, inplace=True)
+        dates = dates.fillna(0, axis="columns")
         return dates
 
     def get_multi_total_token_amount(
@@ -916,15 +937,42 @@ class DataSessions:
         c_ids = self.data["cluster_id"].copy()
         return c_ids.drop_duplicates()
 
+    def get_file_ids(self):
+        """Returns list of file identifier that appear in sessions.
+
+        Returns
+        -------
+        list of str
+            list of file identifier that appear in sessions
+        """
+        c_ids = self.data["identifier"].copy()
+        return c_ids.drop_duplicates()
+
     def get_amount_of_days(self) -> int:
         """
         Return amount of days between first and last metered day (both inclusive)
 
-        Return
-        ------
+        Returns
+        -------
         int
         """
         return len(self.data_pings.get_sequence_of_days())
+
+    def filter_data_for_identifier(self, data):
+        """
+        Return given dataframe filtered by identifier od DataSessions
+
+        Parameter
+        ---------
+        data : pd.DataFrame
+            dataframe to filter (containing column "identifier")
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        data = data[data["identifier"].isin(self.file_selector)]
+        return data
 
 
 class LicenseUsage:

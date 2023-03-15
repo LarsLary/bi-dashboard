@@ -568,3 +568,46 @@ body {
 .dash-uploader-default:hover {
     box-shadow: var(--default-shadow-hover);
 }
+
+.settings-dropdown-menu {
+    background-color: var(--background-grey-color);
+    padding: 0px;
+}
+
+.settings-dropdown-menu .dropdown-toggle {
+    width: 100%;
+    background-color: transparent;
+    border: none;
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.settings-dropdown-menu .dropdown-menu {
+    background-color: var(--background-grey-color);
+    color: var(--bright-color);
+    border: 1px solid white;
+    border-top: none;
+}
+
+.settings-dropdown-menu .dropdown-apply {
+    border-radius: 10px;
+    background-color: var(--background-grey-color);
+    color: var(--bright-color);
+    margin-top: 1vw;
+    margin-left: 10%;
+    width: 80%;
+    border: 1px solid;
+}
+
+.settings-dropdown-menu .dropdown-apply:hover {
+    box-shadow: var(--default-shadow-hover);
+}
+
+.dropdown-menu-toggle {
+    background-color: var(--background-grey-color);
+}
+
+.dropdown-list-label {
+    display: block;
+    padding-left: 0.5vw;
+}
